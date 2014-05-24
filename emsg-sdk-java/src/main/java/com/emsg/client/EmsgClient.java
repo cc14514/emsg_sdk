@@ -10,22 +10,27 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 import net.sf.json.JSONObject;
 
 public class EmsgClient implements Define {
 	
 	private static EmsgClient client = null;
+
+	private BlockingQueue<String> heart_beat_ack = new ArrayBlockingQueue<String>(2, true);
 	
 	static MyLogger logger = new MyLogger(EmsgClient.class);
 	
 	private String auth_service = "http://192.168.1.12:8080/emsg_auth_service/auth.html";
+	private String emsg_host = "127.0.0.1";
+	private int emsg_port = 4222;
+
 	private String jid = null;
 	private String pwd = null;
 	private String inner_token = null;
 	
-	private String emsg_host = "127.0.0.1";
-	private int emsg_port = 4222;
 	
 	private Socket socket = null;
 	
@@ -48,6 +53,7 @@ public class EmsgClient implements Define {
     	}
     	return client;
     }
+    
     public void auth(String jid,String pwd) throws Exception {
     	this.jid = jid;
     	this.pwd = pwd;
@@ -60,7 +66,8 @@ public class EmsgClient implements Define {
 		if(success.getBoolean("success")){
 			JSONObject entity = JSONObject.fromObject(success.getString("entity"));
 			String host = entity.getString("host");
-			//TODO split ip and port
+			this.emsg_host = host.split(":")[0];
+			this.emsg_port = Integer.parseInt(host.split(":")[1]);
 			this.inner_token = entity.getString("inner_token");
 			this.auth = true;
 			initConnection();
@@ -74,6 +81,7 @@ public class EmsgClient implements Define {
     }
    
     private void initConnection() throws UnknownHostException, IOException, InterruptedException{
+    	logger.debug(this.emsg_host+" ; "+this.emsg_port);
     	this.socket = new Socket(this.emsg_host,this.emsg_port);
     	initReaderAndWriter();
     	openSession();
@@ -91,6 +99,7 @@ public class EmsgClient implements Define {
     
     private synchronized void reconnection(){
     	logger.info("======== reconnection ========");
+    	heart_beat_ack.clear();
     }
     
 	private void initReaderAndWriter() throws UnsupportedEncodingException, IOException{
@@ -107,11 +116,36 @@ public class EmsgClient implements Define {
 	}
     
 	class IOListener {
+		Thread heartbeatThread = null;
 		Thread readThread = null;
 		Thread writeThread = null;
 		IOListener(){
 			listenerRead();	
 			listenerWriter();
+			heartbeat();
+		}
+		void heartbeat(){
+			heartbeatThread = new Thread(){
+				public void run(){
+					try{
+						while(true){
+							Thread.sleep(HEART_BEAT_FREQ);
+							if(isAuth()){
+								heart_beat_ack.add("1");
+								send(HEART_BEAT);
+								logger.info("["+heart_beat_ack.size()+"]heartbeat ~~~ ");
+							}
+						}
+					}catch(Exception e){
+						e.printStackTrace();
+						shutdown();
+						reconnection();
+					}
+				}
+			};
+			heartbeatThread.setName("heart_beat"+new Date());
+			heartbeatThread.setDaemon(true);
+			heartbeatThread.start();
 		}
 		void listenerRead(){
 			readThread = new Thread(){
@@ -130,7 +164,13 @@ public class EmsgClient implements Define {
 								}else{
 									sb.append(arr[i]);
 									String msg = sb.toString();
-									packetReader.recv(msg);
+									//TODO dispach heart beat and message
+									if(HEART_BEAT.equals(msg)){
+										//心跳单独处理
+										heart_beat_ack.poll();
+									}else{
+										packetReader.recv(msg);
+									}
 									sb.setLength(0);
 								}
 							}
@@ -155,6 +195,7 @@ public class EmsgClient implements Define {
 							if(!msg.endsWith(END_TAG)){
 								msg = msg+END_TAG;
 							}
+							logger.debug("send_message ==> "+msg);
 							writer.write(msg.getBytes());
 							writer.flush();
 						}
@@ -184,28 +225,5 @@ public class EmsgClient implements Define {
 			e1.printStackTrace();
 		}
 	}
-    
-    public static void main(String[] args) throws Exception {
-    	String auth_service = "http://192.168.1.12:8080/emsg_auth_service/auth.html";
-    	EmsgClient client = EmsgClient.newInstance(auth_service);
-    	client.setPacketListener(new PacketListener() {
-			@Override
-			public void processPacket(String packet) {
-				System.out.println("recv ===> "+packet);
-			}
-		});
-    	client.auth("liangc@test.com","123123");
-    	
-    	Thread.sleep(1000*60*3);
-    	JSONObject packet = new JSONObject();
-		packet.put("id", UUID.randomUUID().toString());
-		packet.put("type", 1);
-		packet.put("from", "cc@test.com");
-		packet.put("to", "liangc@test.com");
-		packet.put("body", "hello world");
-		packet.put("ack", 1);
-		
-    	client.send(packet.toString());
-    }
     
 }

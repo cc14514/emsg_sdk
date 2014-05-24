@@ -5,7 +5,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 
-public class PacketReader {
+public class PacketReader implements Define{
 	
     private Thread readerThread;
     private ExecutorService listenerExecutor;
@@ -33,7 +33,6 @@ public class PacketReader {
 	    			while(true){
 						String packet = queue.take();
 						if(client.listener!=null){
-							//TODO dispach heart beat and message
 							client.listener.processPacket(packet);
 						}
 	    			}

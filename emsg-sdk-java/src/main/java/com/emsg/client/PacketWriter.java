@@ -7,6 +7,7 @@ class PacketWriter {
 
     private Thread writerThread;
     private final BlockingQueue<String> queue;
+    private final BlockingQueue<String> heart_beat_ack;
     volatile boolean done;
     
     public void write(String packet) throws InterruptedException{
@@ -18,6 +19,8 @@ class PacketWriter {
     }
 
     protected PacketWriter() {
+    	this.heart_beat_ack = new ArrayBlockingQueue<String>(5, true);
+    	heart_beat_ack.poll();
         this.queue = new ArrayBlockingQueue<String>(500, true);
         init();
     }
