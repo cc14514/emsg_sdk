@@ -16,4 +16,15 @@ public interface Define {
 	 */
 	public static final int HEART_BEAT_FREQ = 1000*50;
 	
+//	 									 %% 0    打开session                                                                                                                      
+//	 ~                              | 20 %% 1    普通聊天，文本                                                                                                                   
+//	 ~                              | 21 %% 2    群聊，文本                                                                                                                       
+//	 ~                              | 22 %% 3    状态同步                                                                                                                         
+//	 ~                              | 23 %% 4    系统消息                                                                                                                         
+	public static final int MSG_TYPE_OPEN_SESSION = 0;
+	public static final int MSG_TYPE_CHAT = 1;
+	public static final int MSG_TYPE_GROUP_CHAT = 2;
+	public static final int MSG_TYPE_STATE = 3;
+	public static final int MSG_TYPE_SYSTEM = 4;
+	
 }

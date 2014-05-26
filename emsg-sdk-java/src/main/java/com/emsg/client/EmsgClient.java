@@ -88,10 +88,13 @@ public class EmsgClient implements Define {
     }
     
     private void openSession() throws InterruptedException{
+    	//{"envelope":{"id":"1234567890","type":0,"inner_token":"abc123"}}
 		JSONObject j = new JSONObject();
-		j.put("id", UUID.randomUUID().toString());
-		j.put("type", 0);
-		j.put("inner_token", this.inner_token);
+		JSONObject envelope = new JSONObject();
+		envelope.put("id", UUID.randomUUID().toString());
+		envelope.put("type", MSG_TYPE_OPEN_SESSION);
+		envelope.put("inner_token", this.inner_token);
+		j.put("envelope", envelope);
 		String open_session_packet = j.toString();
 		logger.info("open_session ::> "+open_session_packet);
 		packetWriter.write(open_session_packet);
