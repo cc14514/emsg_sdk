@@ -5,6 +5,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 
+import net.sf.json.JSONObject;
+
 public class PacketReader implements Define{
 	
     private Thread readerThread;
@@ -31,7 +33,32 @@ public class PacketReader implements Define{
     		public void run(){
     			try {
 	    			while(true){
+	    				//ack answer
+						/*
+						{
+						  "envelope":{
+						    "id":"xxxx",
+						    "type":3,
+						    "from":"userb@test.com",
+						    "to":"server_ack"
+						  }
+						}
+						*/
 						String packet = queue.take();
+						JSONObject jp = JSONObject.fromObject(packet);
+						JSONObject envelope = jp.getJSONObject("envelope");
+						if(envelope.has("ack")&&envelope.getInt("ack")==1){
+							JSONObject ack = new JSONObject();
+							JSONObject ack_envelope = new JSONObject();
+							String id = envelope.getString("id");
+							String to = envelope.getString("to");
+							ack_envelope.put("id", id);
+							ack_envelope.put("from", to);
+							ack_envelope.put("to", "server_ack");
+							ack_envelope.put("type", MSG_TYPE_STATE);
+							ack.put("envelope", ack_envelope);
+							client.send(ack.toString());
+						}
 						if(client.listener!=null){
 							client.listener.processPacket(packet);
 						}
