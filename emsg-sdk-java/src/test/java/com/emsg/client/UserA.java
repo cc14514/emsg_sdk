@@ -6,11 +6,11 @@ import net.sf.json.JSONObject;
 
 public class UserA {
 	
-	static final String auth_service = "http://127.0.0.1:8080/emsg_auth_service/auth.html";
+	static final String auth_service = "http://192.168.1.12/emsg_auth_service/auth.html";
 	
 	public static void main(String[] args) throws Exception {
 		
-		EmsgClient client = EmsgClient.newInstance(auth_service);
+		EmsgClient client = new EmsgClient("127.0.0.1",4222);
     	client.setPacketListener(new PacketListener() {
 			@Override
 			public void processPacket(String packet) {
@@ -29,16 +29,13 @@ public class UserA {
 		envelope.put("ack", 1);
 		
 		JSONObject payload = new JSONObject();
-		payload.put("content", "jjjjjjjjjjjjjjjjjjjjj");
-		payload.put("lat", "1123123");
-		payload.put("lng", "3423423");
+		payload.put("content", "你心情好么");
 		
 		packet.put("envelope",envelope);
 		packet.put("payload",payload);
-		
+		packet.put("vsn","0.0.1");
+
 		String msg = packet.toString();
-		
-		System.out.println("aaa send ===> "+msg);
     	client.send(msg);
 		Thread.sleep(Integer.MAX_VALUE);
 	}

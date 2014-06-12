@@ -4,10 +4,10 @@ package com.emsg.client;
 
 public class UserB implements Define{
 	
-	static final String auth_service = "http://127.0.0.1:8080/emsg_auth_service/auth.html";
+	static final String auth_service = "http://192.168.1.12/emsg_auth_service/auth.html";
 	
 	public static void main(String[] args) throws Exception {
-		final EmsgClient client = EmsgClient.newInstance(auth_service);
+		final EmsgClient client = new EmsgClient("192.168.1.11",4223);
     	client.setPacketListener(new PacketListener() {
 			@Override
 			public void processPacket(String packet) {

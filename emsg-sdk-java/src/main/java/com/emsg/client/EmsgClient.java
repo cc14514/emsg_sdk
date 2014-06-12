@@ -17,8 +17,6 @@ import net.sf.json.JSONObject;
 
 public class EmsgClient implements Define {
 	
-	private static EmsgClient client = null;
-
 	private BlockingQueue<String> heart_beat_ack = new ArrayBlockingQueue<String>(2, true);
 	
 	static MyLogger logger = new MyLogger(EmsgClient.class);
@@ -31,6 +29,7 @@ public class EmsgClient implements Define {
 	private String pwd = null;
 	private String inner_token = null;
 	
+	private int heartBeat = HEART_BEAT_FREQ;
 	
 	private Socket socket = null;
 	
@@ -44,14 +43,12 @@ public class EmsgClient implements Define {
     
     private boolean auth = false;
     
-	private EmsgClient(String auth_service){
-		this.auth_service = auth_service;
-	}
-    public static EmsgClient newInstance(String auth_service){
-    	if(client==null){
-    		client = new EmsgClient(auth_service);
-    	}
-    	return client;
+    public EmsgClient(String auth_service){
+    	this.auth_service = auth_service;
+    }  
+    public EmsgClient(String host,int port){
+    	this.emsg_host = host;
+    	this.emsg_port = port;
     }
     
     public void auth(String jid,String pwd) throws Exception {
@@ -60,7 +57,9 @@ public class EmsgClient implements Define {
 		Map<String,String> params = new HashMap<String,String>();
 		params.put("jid", jid);
 		params.put("pwd", pwd);
-		String rtn = HttpUtils.http(auth_service, params);
+		this.auth = true;
+		initConnection();
+		/*String rtn = HttpUtils.http(auth_service, params);
 		logger.info(rtn);
 		JSONObject success = JSONObject.fromObject(rtn);
 		if(success.getBoolean("success")){
@@ -73,7 +72,7 @@ public class EmsgClient implements Define {
 			initConnection();
 		}else{
 			new Exception("fail auth ::>"+success.getString("entity"));
-		}
+		}*/
     }
     
     public void setPacketListener(PacketListener listener){
@@ -93,7 +92,10 @@ public class EmsgClient implements Define {
 		JSONObject envelope = new JSONObject();
 		envelope.put("id", UUID.randomUUID().toString());
 		envelope.put("type", MSG_TYPE_OPEN_SESSION);
-		envelope.put("inner_token", this.inner_token);
+//		envelope.put("inner_token", this.inner_token);
+		envelope.put("jid", this.jid);
+		envelope.put("pwd", this.pwd);
+		
 		j.put("envelope", envelope);
 		String open_session_packet = j.toString();
 		logger.info("open_session ::> "+open_session_packet);
@@ -132,7 +134,7 @@ public class EmsgClient implements Define {
 				public void run(){
 					try{
 						while(true){
-							Thread.sleep(HEART_BEAT_FREQ);
+							Thread.sleep(getHeartBeat());
 							if(isAuth()){
 								heart_beat_ack.add("1");
 								send(HEART_BEAT);
@@ -227,6 +229,17 @@ public class EmsgClient implements Define {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
+	}
+
+	public int getHeartBeat() {
+		return heartBeat;
+	}
+
+	public void setHeartBeat(int heartBeat) throws Exception {
+		if(100*1000>heartBeat){
+			throw new Exception("scope from 1000 to 100000 ");
+		}
+		this.heartBeat = heartBeat;
 	}
     
 }
