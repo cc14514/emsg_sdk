@@ -21,7 +21,7 @@ public class EmsgClient implements Define {
 	
 	static MyLogger logger = new MyLogger(EmsgClient.class);
 	
-	private String auth_service = "http://192.168.1.12:8080/emsg_auth_service/auth.html";
+//	private String auth_service = "http://192.168.1.12:8080/emsg_auth_service/auth.html";
 	private String emsg_host = "127.0.0.1";
 	private int emsg_port = 4222;
 
@@ -42,10 +42,12 @@ public class EmsgClient implements Define {
     protected PacketListener listener = null;
     
     private boolean auth = false;
+    private boolean isClose = false;
+    private String reconnectSN = null;
     
-    public EmsgClient(String auth_service){
-    	this.auth_service = auth_service;
-    }  
+//    public EmsgClient(String auth_service){
+//    	this.auth_service = auth_service;
+//    }  
     public EmsgClient(String host,int port){
     	this.emsg_host = host;
     	this.emsg_port = port;
@@ -82,6 +84,8 @@ public class EmsgClient implements Define {
     private void initConnection() throws UnknownHostException, IOException, InterruptedException{
     	logger.debug(this.emsg_host+" ; "+this.emsg_port);
     	this.socket = new Socket(this.emsg_host,this.emsg_port);
+    	reconnectSN = null;
+    	isClose = false;
     	initReaderAndWriter();
     	openSession();
     }
@@ -101,10 +105,29 @@ public class EmsgClient implements Define {
 		logger.info("open_session ::> "+open_session_packet);
 		packetWriter.write(open_session_packet);
 	}
-    
-    private synchronized void reconnection(){
-    	logger.info("======== reconnection ========");
+   
+    private void reconnection(String reconnectSN) {
+    	if(this.reconnectSN==null){
+    		this.reconnectSN = reconnectSN;
+    		loop(reconnectSN);
+    	}else{
+    		logger.info("======== reconnection_skip ========"+reconnectSN);
+    	}
+    }
+    private void loop(String reconnectSN){
+    	logger.info("======== reconnection_loop ========"+reconnectSN);
     	heart_beat_ack.clear();
+    	try {
+			initConnection();
+		} catch (Exception e) {
+			try {
+				Thread.sleep(4000);
+			} catch (InterruptedException e1) {
+//				e1.printStackTrace();
+			}
+//			e.printStackTrace();
+			loop(reconnectSN);
+		}
     }
     
 	private void initReaderAndWriter() throws UnsupportedEncodingException, IOException{
@@ -140,11 +163,15 @@ public class EmsgClient implements Define {
 								send(HEART_BEAT);
 								logger.info("["+heart_beat_ack.size()+"]heartbeat ~~~ ");
 							}
+							if(isClose){
+								logger.info("["+heart_beat_ack.size()+"] is_closed ~~~ ");
+								return ;
+							}
 						}
 					}catch(Exception e){
 						e.printStackTrace();
 						shutdown();
-						reconnection();
+						reconnection(reconnectSN);
 					}
 				}
 			};
@@ -159,7 +186,7 @@ public class EmsgClient implements Define {
 						byte[] buff = new byte[1024];
 						int len = 0;
 						StringBuffer sb = new StringBuffer();
-						while((len=reader.read(buff))!=-1){
+						while((len=reader.read(buff))!=-1){//当远程流断开时，会返回 0
 							String packet = new String(buff,0,len);
 							String[] arr = packet.split(END_TAG);
 							for(int i=0 ; i<arr.length;i++){
@@ -180,10 +207,11 @@ public class EmsgClient implements Define {
 								}
 							}
 						}
+						throw new Exception("emsg_retome_socket_closed");
 					}catch(Exception e){
 						e.printStackTrace();
 						shutdown();
-						reconnection();
+						reconnection("listenerRead");
 					}
 				}
 			};
@@ -200,14 +228,14 @@ public class EmsgClient implements Define {
 							if(!msg.endsWith(END_TAG)){
 								msg = msg+END_TAG;
 							}
-							logger.debug("send_message ==> "+msg);
+							logger.debug("IOListener_writer socket_is_close="+isClose+" send_message ==> "+msg);
 							writer.write(msg.getBytes());
 							writer.flush();
 						}
 					}catch(Exception e){
 						e.printStackTrace();
 						shutdown();
-						reconnection();
+						reconnection("listenerWriter");
 					}
 				}
 			};
@@ -223,6 +251,7 @@ public class EmsgClient implements Define {
 	
 	public void shutdown(){
 		try {
+			isClose = true;
 			if(!socket.isClosed()){
 				socket.close();
 			}
@@ -236,7 +265,7 @@ public class EmsgClient implements Define {
 	}
 
 	public void setHeartBeat(int heartBeat) throws Exception {
-		if(100*1000>heartBeat){
+		if(100*1000<heartBeat){
 			throw new Exception("scope from 1000 to 100000 ");
 		}
 		this.heartBeat = heartBeat;

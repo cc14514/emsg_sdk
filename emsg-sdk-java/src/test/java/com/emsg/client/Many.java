@@ -6,8 +6,6 @@ import java.util.List;
 
 public class Many {
 	
-	static final String auth_service = "http://192.168.1.12/emsg_auth_service/auth.html";
-	
 	public static void main(String[] args) throws Exception {
 		s(10000);
 	}
@@ -19,7 +17,7 @@ public class Many {
 			new Thread(){
 				public void run(){
 					try{
-						EmsgClient client = new EmsgClient(auth_service);
+						EmsgClient client = new EmsgClient("",0);
 						client.setPacketListener(new PacketListener() {
 							@Override
 							public void processPacket(String packet) {
@@ -57,7 +55,7 @@ public class Many {
 		for(int i=0;i<m;i++){
 			final int j = i;
 			try{
-				EmsgClient client = new EmsgClient(auth_service);
+				EmsgClient client = new EmsgClient("",0);
 				client.setHeartBeat(100*1000);
 				client.setPacketListener(new PacketListener() {
 					@Override

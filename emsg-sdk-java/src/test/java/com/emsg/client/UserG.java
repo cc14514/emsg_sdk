@@ -8,10 +8,9 @@ import net.sf.json.JSONObject;
 
 public class UserG implements Define{
 	
-	static final String auth_service = "http://127.0.0.1:8080/emsg_auth_service/auth.html";
 	
 	public static void main(String[] args) throws Exception {
-		final EmsgClient client = new EmsgClient(auth_service);
+		final EmsgClient client = new EmsgClient("",0);
     	client.setPacketListener(new PacketListener() {
 			@Override
 			public void processPacket(String packet) {

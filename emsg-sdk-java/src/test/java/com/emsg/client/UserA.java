@@ -6,30 +6,49 @@ import net.sf.json.JSONObject;
 
 public class UserA {
 	
-	static final String auth_service = "http://192.168.1.12/emsg_auth_service/auth.html";
-	
 	public static void main(String[] args) throws Exception {
 		
-		EmsgClient client = new EmsgClient("127.0.0.1",4222);
+		EmsgClient client = new EmsgClient("222.128.11.38",4222);
     	client.setPacketListener(new PacketListener() {
 			@Override
 			public void processPacket(String packet) {
 				System.out.println("aaa recv ===> "+packet);
 			}
 		});
-    	client.auth("usera@test.com","123123");
+    	client.auth("aaa@test.com","123123");
 
 		JSONObject packet = new JSONObject();
-		
+
+/*		
+		[{<<"envelope">>,
+            [{<<"id">>,<<"d8e98cf9-147c-4853-a1cc-6c32d6da562c">>},
+             {<<"type">>,1},
+             {<<"ack">>,1},
+             {<<"from">>,<<"aaa@test.com">>},
+             {<<"to">>,<<"bbb@test.com">>}]},
+           {<<"payload">>,
+            [{<<"attrs">>,[{<<"msgtype">>,<<"normalchat">>},{<<"type">>,<<"chat">>}]},
+             {<<"content">>,[{<<"body">>,<<"ahahahahaha_222____0">>}]}]},
+           {<<"vsn">>,<<"0.0.1">>}]
+*/		
 		JSONObject envelope = new JSONObject();
 		envelope.put("id", UUID.randomUUID().toString());
 		envelope.put("type", 1);
-		envelope.put("from", "usera@test.com");
-		envelope.put("to", "userb@test.com");
+		envelope.put("from", "aaa@test.com");
+		envelope.put("to", "bbb@test.com");
 		envelope.put("ack", 1);
 		
 		JSONObject payload = new JSONObject();
-		payload.put("content", "你心情好么");
+		
+		JSONObject attrs = new JSONObject();
+		attrs.put("msgtype", "normalchat");
+		attrs.put("type", "chat");
+		
+		JSONObject content = new JSONObject();
+		content.put("body", "emsg_to_ejabberd_test__0100005555");
+		
+		payload.put("attrs", attrs);
+		payload.put("content", content);
 		
 		packet.put("envelope",envelope);
 		packet.put("payload",payload);
