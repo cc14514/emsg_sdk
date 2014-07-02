@@ -17,18 +17,16 @@ import net.sf.json.JSONObject;
 
 public class EmsgClient implements Define {
 	
-	private BlockingQueue<String> heart_beat_ack = new ArrayBlockingQueue<String>(2, true);
+	private BlockingQueue<String> heart_beat_ack = null;
 	
 	static MyLogger logger = new MyLogger(EmsgClient.class);
 	
-//	private String auth_service = "http://192.168.1.12:8080/emsg_auth_service/auth.html";
 	private String emsg_host = "127.0.0.1";
 	private int emsg_port = 4222;
 
 	private String jid = null;
 	private String pwd = null;
-	private String inner_token = null;
-	
+	private String heart = null;
 	private int heartBeat = HEART_BEAT_FREQ;
 	
 	private Socket socket = null;
@@ -75,6 +73,16 @@ public class EmsgClient implements Define {
 		}else{
 			new Exception("fail auth ::>"+success.getString("entity"));
 		}*/
+		//XXX 启动重连线程
+		Thread reconnect = new Thread(new Runnable(){
+			@Override
+			public void run() {
+				loop();
+			}
+		});
+		reconnect.setName("reconnect__main"+new Date());
+		reconnect.setDaemon(true);
+    	reconnect.start();
     }
     
     public void setPacketListener(PacketListener listener){
@@ -109,24 +117,36 @@ public class EmsgClient implements Define {
     private void reconnection(String reconnectSN) {
     	if(this.reconnectSN==null){
     		this.reconnectSN = reconnectSN;
-    		loop(reconnectSN);
+    		try {
+				loop_queue.put("do");
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
     	}else{
     		logger.info("======== reconnection_skip ========"+reconnectSN);
     	}
     }
-    private void loop(String reconnectSN){
-    	logger.info("======== reconnection_loop ========"+reconnectSN);
-    	heart_beat_ack.clear();
+    
+    private final BlockingQueue<String> loop_queue = new ArrayBlockingQueue<String>(1, true);;
+    
+    private void loop(){
     	try {
-			initConnection();
+    		String cmd = loop_queue.take();
+    		if("do".equals(cmd)){
+    			logger.info("======== reconnection_loop_start ======== "+cmd);
+    			initConnection();
+    		}
+    		reconnectSN=null;
 		} catch (Exception e) {
 			try {
-				Thread.sleep(4000);
+				logger.info("loop---->"+e.getMessage());
+				Thread.sleep(1000);
+				loop_queue.put("do");
 			} catch (InterruptedException e1) {
-//				e1.printStackTrace();
+				e1.printStackTrace();
 			}
-//			e.printStackTrace();
-			loop(reconnectSN);
+		}finally{
+			loop();
 		}
     }
     
@@ -136,7 +156,9 @@ public class EmsgClient implements Define {
         //TODO if first new reader
         packetReader = new PacketReader(this);
         packetWriter = new PacketWriter();
-        new IOListener();
+        heart_beat_ack = new ArrayBlockingQueue<String>(2, true);
+        this.heart = UUID.randomUUID().toString();
+        new IOListener(heart);
 	}
 	
     public boolean isAuth() {
@@ -147,10 +169,12 @@ public class EmsgClient implements Define {
 		Thread heartbeatThread = null;
 		Thread readThread = null;
 		Thread writeThread = null;
-		IOListener(){
+		String _heart = null;
+		IOListener(String _heart){
 			listenerRead();	
 			listenerWriter();
 			heartbeat();
+			this._heart = _heart;
 		}
 		void heartbeat(){
 			heartbeatThread = new Thread(){
@@ -158,6 +182,9 @@ public class EmsgClient implements Define {
 					try{
 						while(true){
 							Thread.sleep(getHeartBeat());
+							if(!heart.equals(_heart)){
+								return ;
+							}
 							if(isAuth()){
 								heart_beat_ack.add("1");
 								send(HEART_BEAT);
@@ -175,7 +202,7 @@ public class EmsgClient implements Define {
 					}
 				}
 			};
-			heartbeatThread.setName("heart_beat"+new Date());
+			heartbeatThread.setName("IOListener__heart_beat__"+new Date());
 			heartbeatThread.setDaemon(true);
 			heartbeatThread.start();
 		}
@@ -210,21 +237,25 @@ public class EmsgClient implements Define {
 						throw new Exception("emsg_retome_socket_closed");
 					}catch(Exception e){
 						e.printStackTrace();
-						shutdown();
 						reconnection("listenerRead");
+						shutdown();
 					}
 				}
 			};
-			readThread.setName("read"+new Date());
+			readThread.setName("IOListener__read__"+new Date());
 			readThread.setDaemon(true);
 			readThread.start();
 		}
+
 		void listenerWriter(){
 			writeThread = new Thread(){
 				public void run(){
 					try{
 						while(true){
 							String msg = packetWriter.take();
+							if(KILL.equals(msg)){
+								return ;
+							}
 							if(!msg.endsWith(END_TAG)){
 								msg = msg+END_TAG;
 							}
@@ -239,7 +270,7 @@ public class EmsgClient implements Define {
 					}
 				}
 			};
-			writeThread.setName("writer"+new Date());
+			writeThread.setName("IOListener__writer__"+new Date());
 			writeThread.setDaemon(true);
 			writeThread.start();
 		}
@@ -252,6 +283,11 @@ public class EmsgClient implements Define {
 	public void shutdown(){
 		try {
 			isClose = true;
+			packetReader.kill();
+			packetWriter.kill();
+			packetReader = null;
+			packetWriter = null;
+			heart_beat_ack = null;
 			if(!socket.isClosed()){
 				socket.close();
 			}

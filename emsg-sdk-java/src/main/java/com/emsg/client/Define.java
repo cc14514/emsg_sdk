@@ -3,6 +3,8 @@ package com.emsg.client;
  * @author liangc
  */
 public interface Define {
+	//线程的退出信号，在队列中传递
+	public final static String KILL = "\01\02\03";
 	/**
 	 * 结束符
 	 */

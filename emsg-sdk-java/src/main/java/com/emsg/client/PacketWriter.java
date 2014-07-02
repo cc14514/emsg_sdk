@@ -3,12 +3,20 @@ package com.emsg.client;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-class PacketWriter {
+class PacketWriter implements Define{
 
     private Thread writerThread;
     private final BlockingQueue<String> queue;
     private final BlockingQueue<String> heart_beat_ack;
     volatile boolean done;
+    
+    public void kill() {
+    	try {
+    		queue.put(KILL);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+    }
     
     public void write(String packet) throws InterruptedException{
     	queue.put(packet);

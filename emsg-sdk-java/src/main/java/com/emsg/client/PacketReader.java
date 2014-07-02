@@ -13,10 +13,17 @@ public class PacketReader implements Define{
     private ExecutorService listenerExecutor;
     private final BlockingQueue<String> queue;
     private EmsgClient client = null;
-    
     volatile boolean done;
 
     private String connectionID = null;
+    
+    public void kill() {
+    	try {
+			queue.put(KILL);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+    }
     
     public void recv(String msg) throws InterruptedException{
     	queue.put(msg);
@@ -45,6 +52,9 @@ public class PacketReader implements Define{
 						}
 						*/
 						String packet = queue.take();
+						if(KILL.equals(packet)){
+							return ;
+						}
 						JSONObject jp = JSONObject.fromObject(packet);
 						JSONObject envelope = jp.getJSONObject("envelope");
 						if(envelope.has("ack")&&envelope.getInt("ack")==1){
@@ -69,7 +79,7 @@ public class PacketReader implements Define{
     			}
     		}
     	};
-    	readerThread.setName("readerThread_"+new Date());
+    	readerThread.setName("PacketReader__"+new Date());
     	readerThread.setDaemon(true);
     	readerThread.start();
     }
