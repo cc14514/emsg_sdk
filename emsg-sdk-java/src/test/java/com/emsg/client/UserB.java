@@ -5,7 +5,7 @@ package com.emsg.client;
 public class UserB implements Define{
 	
 	public static void main(String[] args) throws Exception {
-		final EmsgClient client = new EmsgClient("222.128.11.38",4222);
+		final EmsgClient client = new EmsgClient("192.168.1.11",4222);
 		client.setHeartBeat(1000*10);
     	client.setPacketListener(new PacketListener() {
 			@Override

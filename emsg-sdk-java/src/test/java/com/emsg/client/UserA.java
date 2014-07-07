@@ -8,14 +8,14 @@ public class UserA {
 	
 	public static void main(String[] args) throws Exception {
 		
-		EmsgClient client = new EmsgClient("222.128.11.38",4222);
+		EmsgClient client = new EmsgClient("192.168.1.11",4222);
     	client.setPacketListener(new PacketListener() {
 			@Override
 			public void processPacket(String packet) {
 				System.out.println("aaa recv ===> "+packet);
 			}
 		});
-    	client.auth("aaa@test.com","123123");
+    	client.auth("aaa@test.com/123","123123");
 
 		JSONObject packet = new JSONObject();
 
@@ -34,7 +34,7 @@ public class UserA {
 		JSONObject envelope = new JSONObject();
 		envelope.put("id", UUID.randomUUID().toString());
 		envelope.put("type", 1);
-		envelope.put("from", "aaa@test.com");
+		envelope.put("from", "aaa@test.com/123");
 		envelope.put("to", "bbb@test.com");
 		envelope.put("ack", 1);
 		
@@ -45,7 +45,7 @@ public class UserA {
 		attrs.put("type", "chat");
 		
 		JSONObject content = new JSONObject();
-		content.put("body", "emsg_to_ejabberd_test__0100005555");
+		content.put("body", "你知不知道");
 		
 		payload.put("attrs", attrs);
 		payload.put("content", content);

@@ -54,12 +54,13 @@ public class EmsgClient implements Define {
     public void auth(String jid,String pwd) throws Exception {
     	this.jid = jid;
     	this.pwd = pwd;
+		this.auth = true;
+		initConnection();
+		/*
 		Map<String,String> params = new HashMap<String,String>();
 		params.put("jid", jid);
 		params.put("pwd", pwd);
-		this.auth = true;
-		initConnection();
-		/*String rtn = HttpUtils.http(auth_service, params);
+		String rtn = HttpUtils.http(auth_service, params);
 		logger.info(rtn);
 		JSONObject success = JSONObject.fromObject(rtn);
 		if(success.getBoolean("success")){
@@ -198,7 +199,7 @@ public class EmsgClient implements Define {
 					}catch(Exception e){
 						e.printStackTrace();
 						shutdown();
-						reconnection(reconnectSN);
+						reconnection("heart_beat");
 					}
 				}
 			};
