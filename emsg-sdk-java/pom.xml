@@ -21,6 +21,11 @@
 						<version>2.2</version>
 						<classifier>jdk15</classifier>
 				</dependency>
+				<dependency>
+				  <groupId>junit</groupId>
+				  <artifactId>junit</artifactId>
+				  <version>4.11-20120805-1225</version>
+				</dependency>
 		</dependencies>
 
 		<build>
