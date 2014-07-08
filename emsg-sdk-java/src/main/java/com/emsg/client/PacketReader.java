@@ -63,7 +63,7 @@ public class PacketReader implements Define{
 							String id = envelope.getString("id");
 							String to = envelope.getString("to");
 							ack_envelope.put("id", id);
-							ack_envelope.put("from", to);
+							ack_envelope.put("from", client.getJid());
 							ack_envelope.put("to", "server_ack");
 							ack_envelope.put("type", MSG_TYPE_STATE);
 							ack.put("envelope", ack_envelope);

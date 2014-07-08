@@ -307,5 +307,9 @@ public class EmsgClient implements Define {
 		}
 		this.heartBeat = heartBeat;
 	}
+
+	public String getJid() {
+		return jid;
+	}
     
 }
