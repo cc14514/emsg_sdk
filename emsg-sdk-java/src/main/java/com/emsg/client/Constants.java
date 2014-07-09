@@ -37,7 +37,7 @@ public class Constants {
 	public static String to_account = "cai@test.com/123";
 	public static String to_password = "123123";
 	
-	public static String server_host = "123123";
+	public static String server_host = "192.168.1.11";
 	public static int server_port = 4222;
 	
 }
