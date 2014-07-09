@@ -27,7 +27,7 @@ public class EmsgClient implements Define {
 	private String jid = null;
 	private String pwd = null;
 	private String heart = null;
-	private int heartBeat = HEART_BEAT_FREQ;
+	private int heartBeat = 5000;
 	
 	private Socket socket = null;
 	
@@ -83,7 +83,7 @@ public class EmsgClient implements Define {
 		});
 		reconnect.setName("reconnect__main"+new Date());
 		reconnect.setDaemon(true);
-    	reconnect.start();
+    	// reconnect.start();
     }
     
     public void setPacketListener(PacketListener listener){
@@ -197,7 +197,6 @@ public class EmsgClient implements Define {
 							}
 						}
 					}catch(Exception e){
-						e.printStackTrace();
 						shutdown();
 						reconnection("heart_beat");
 					}
@@ -237,7 +236,6 @@ public class EmsgClient implements Define {
 						}
 						throw new Exception("emsg_retome_socket_closed");
 					}catch(Exception e){
-						e.printStackTrace();
 						reconnection("listenerRead");
 						shutdown();
 					}
@@ -284,10 +282,14 @@ public class EmsgClient implements Define {
 	public void shutdown(){
 		try {
 			isClose = true;
-			packetReader.kill();
-			packetWriter.kill();
-			packetReader = null;
-			packetWriter = null;
+			if (packetReader != null) {
+				packetReader.kill();
+				packetReader = null;
+			}
+			if (packetWriter != null) {
+				packetWriter.kill();
+				packetWriter = null;
+			}
 			heart_beat_ack = null;
 			if(!socket.isClosed()){
 				socket.close();

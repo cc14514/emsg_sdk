@@ -69,6 +69,17 @@ public class PacketReader implements Define{
 							ack.put("envelope", ack_envelope);
 							client.send(ack.toString());
 						}
+
+						// 认证信息暂不处理
+						if(envelope.has("type")&&envelope.getInt("type")==0){
+							continue;
+						}
+						
+						// 确认信息暂不处理
+						if(envelope.has("from")&&envelope.getString("from").equals("server_ack")){
+							continue;
+						}
+												
 						if(client.listener!=null){
 							client.listener.processPacket(packet);
 						}
