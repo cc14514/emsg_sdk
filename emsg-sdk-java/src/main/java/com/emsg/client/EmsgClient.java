@@ -83,7 +83,7 @@ public class EmsgClient implements Define {
 		});
 		reconnect.setName("reconnect__main"+new Date());
 		reconnect.setDaemon(true);
-    	// reconnect.start();
+    	reconnect.start();
     }
     
     public void setPacketListener(PacketListener listener){
@@ -119,6 +119,7 @@ public class EmsgClient implements Define {
     	if(this.reconnectSN==null){
     		this.reconnectSN = reconnectSN;
     		try {
+    			logger.debug("reconnect_do_at_"+reconnectSN);
 				loop_queue.put("do");
 			} catch (InterruptedException e) {
 				e.printStackTrace();
@@ -213,7 +214,8 @@ public class EmsgClient implements Define {
 						byte[] buff = new byte[1024];
 						int len = 0;
 						StringBuffer sb = new StringBuffer();
-						while((len=reader.read(buff))!=-1){//当远程流断开时，会返回 0
+						while((len=reader.read(buff))!=0&&len!=-1){//当远程流断开时，会返回 0
+							System.out.println(len);
 							String packet = new String(buff,0,len);
 							String[] arr = packet.split(END_TAG);
 							for(int i=0 ; i<arr.length;i++){
@@ -236,8 +238,9 @@ public class EmsgClient implements Define {
 						}
 						throw new Exception("emsg_retome_socket_closed");
 					}catch(Exception e){
-						reconnection("listenerRead");
+						e.printStackTrace();
 						shutdown();
+						reconnection("listenerRead");
 					}
 				}
 			};
@@ -294,6 +297,7 @@ public class EmsgClient implements Define {
 			if(!socket.isClosed()){
 				socket.close();
 			}
+			logger.info("shutdown...");
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
