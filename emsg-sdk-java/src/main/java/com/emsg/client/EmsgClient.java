@@ -7,8 +7,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -115,6 +113,10 @@ public class EmsgClient implements Define {
 		packetWriter.write(open_session_packet);
 	}
    
+    public void close(){
+    	shutdown();
+    	
+    }
     private void reconnection(String reconnectSN) {
     	if(this.reconnectSN==null){
     		this.reconnectSN = reconnectSN;
@@ -132,8 +134,9 @@ public class EmsgClient implements Define {
     private final BlockingQueue<String> loop_queue = new ArrayBlockingQueue<String>(1, true);;
     
     private void loop(){
+    	String cmd = null;
     	try {
-    		String cmd = loop_queue.take();
+    		cmd = loop_queue.take();
     		if("do".equals(cmd)){
     			logger.info("======== reconnection_loop_start ======== "+cmd);
     			initConnection();
@@ -148,7 +151,11 @@ public class EmsgClient implements Define {
 				e1.printStackTrace();
 			}
 		}finally{
-			loop();
+			if(Define.KILL.equals(cmd)){
+				logger.info("reconnect_thread_shutdown");
+			}else{
+    			loop();
+    		}
 		}
     }
     

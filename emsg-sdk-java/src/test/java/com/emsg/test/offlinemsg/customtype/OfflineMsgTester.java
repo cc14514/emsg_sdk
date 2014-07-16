@@ -41,8 +41,8 @@ public class OfflineMsgTester {
 
     @After
     public void clearup() throws Exception {
-    	sender.shutdown();
-    	receiver.shutdown();
+    	//sender.shutdown();
+    	//receiver.shutdown();
     }
     
     @Test

@@ -36,7 +36,7 @@ public class UserA {
 		envelope.put("type", 1);
 		envelope.put("from", "aaa@test.com/123");
 		envelope.put("to", "bbb@test.com");
-		envelope.put("ack", 1);
+		envelope.put("ack", 0);
 		
 		JSONObject payload = new JSONObject();
 		
@@ -45,7 +45,7 @@ public class UserA {
 		attrs.put("type", "chat");
 		
 		JSONObject content = new JSONObject();
-		content.put("body", "你知不知道");
+		content.put("body", "会离线么333");
 		
 		payload.put("attrs", attrs);
 		payload.put("content", content);
