@@ -279,6 +279,9 @@ public class EmsgClient<T> implements Define {
 	}
 	
 	public void send(IPacket<T> packet) throws InterruptedException{
+		if(packet.getEnvelope().getFrom()==null){
+			packet.getEnvelope().setFrom(this.jid);
+		}
 		String encode_message = getProvider().encode(packet);
 		packetWriter.write(encode_message);
 	}
