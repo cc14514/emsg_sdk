@@ -20,19 +20,11 @@
 
 package com.emsg.client;
 
+import com.emsg.client.beans.IPacket;
 
-/**
- * Provides a mechanism to listen for packets that pass a specified filter.
- * This allows event-style programming -- every time a new packet is found,
- * the {@link #processPacket(Packet)} method will be called. This is the
- * opposite approach to the functionality provided by a {@link PacketCollector}
- * which lets you block while waiting for results.
- *
- * @see Connection#addPacketListener(PacketListener, org.jivesoftware.smack.filter.PacketFilter)
- * @author Matt Tucker
- */
-public interface PacketListener {
 
-    public void processPacket(String packet);
+public interface PacketListener<T> {
+
+    public void processPacket(IPacket<T> packet);
     
 }

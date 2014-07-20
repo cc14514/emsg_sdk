@@ -3,9 +3,8 @@ package com.emsg.client;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-class PacketWriter implements Define{
+public class PacketWriter implements Define{
 
-    private Thread writerThread;
     private final BlockingQueue<String> queue;
     private final BlockingQueue<String> heart_beat_ack;
     volatile boolean done;

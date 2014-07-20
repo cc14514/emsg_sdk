@@ -3,19 +3,17 @@ package com.emsg.client;
 import java.util.Date;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
 
 import net.sf.json.JSONObject;
 
-public class PacketReader implements Define{
+import com.emsg.client.beans.IPacket;
+
+public class PacketReader<T> implements Define{
 	
     private Thread readerThread;
-    private ExecutorService listenerExecutor;
     private final BlockingQueue<String> queue;
-    private EmsgClient client = null;
+    private EmsgClient<T> client = null;
     volatile boolean done;
-
-    private String connectionID = null;
     
     public void kill() {
     	try {
@@ -29,7 +27,7 @@ public class PacketReader implements Define{
     	queue.put(msg);
     }
     
-    protected PacketReader(EmsgClient client) {
+    protected PacketReader(EmsgClient<T> client) {
     	this.client = client;
     	this.queue = new ArrayBlockingQueue<String>(500, true);
         this.init();
@@ -61,7 +59,6 @@ public class PacketReader implements Define{
 							JSONObject ack = new JSONObject();
 							JSONObject ack_envelope = new JSONObject();
 							String id = envelope.getString("id");
-							String to = envelope.getString("to");
 							ack_envelope.put("id", id);
 							ack_envelope.put("from", client.getJid());
 							ack_envelope.put("to", "server_ack");
@@ -71,9 +68,9 @@ public class PacketReader implements Define{
 						}
 
 						// 认证信息暂不处理
-						if(envelope.has("type")&&envelope.getInt("type")==0){
-							continue;
-						}
+//						if(envelope.has("type")&&envelope.getInt("type")==0){
+//							continue;
+//						}
 						
 						// 确认信息暂不处理
 						if(envelope.has("from")&&envelope.getString("from").equals("server_ack")){
@@ -81,7 +78,9 @@ public class PacketReader implements Define{
 						}
 												
 						if(client.listener!=null){
-							client.listener.processPacket(packet);
+							System.out.println("reader :::> "+packet);
+							IPacket<T> p = client.getProvider().decode(packet);
+							client.listener.processPacket(p);
 						}
 	    			}
     			} catch (InterruptedException e) {
@@ -94,5 +93,4 @@ public class PacketReader implements Define{
     	readerThread.setDaemon(true);
     	readerThread.start();
     }
-    
 }

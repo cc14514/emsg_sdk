@@ -6,14 +6,20 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 import net.sf.json.JSONObject;
 
-public class EmsgClient implements Define {
+import com.emsg.client.beans.DefProvider;
+import com.emsg.client.beans.IPacket;
+import com.emsg.client.beans.IProvider;
+
+public class EmsgClient<T> implements Define {
 	
 	private BlockingQueue<String> heart_beat_ack = null;
 	
@@ -32,12 +38,13 @@ public class EmsgClient implements Define {
 	protected InputStream reader = null;
     protected OutputStream writer = null;
 	
-    public PacketReader packetReader = null;
+    public PacketReader<T> packetReader = null;
     public PacketWriter packetWriter = null;
     
-    protected PacketListener listener = null;
+    protected PacketListener<T> listener = null;
+    private IProvider<T> provider = null;
     
-    private boolean auth = false;
+	private boolean auth = false;
     private boolean isClose = false;
     private String reconnectSN = null;
     
@@ -47,6 +54,8 @@ public class EmsgClient implements Define {
     public EmsgClient(String host,int port){
     	this.emsg_host = host;
     	this.emsg_port = port;
+    	// 默认的 包解析器
+    	System.setProperty("emsg.packet.provider", DefProvider.class.getName());
     }
     
     public void auth(String jid,String pwd) throws Exception {
@@ -54,24 +63,6 @@ public class EmsgClient implements Define {
     	this.pwd = pwd;
 		this.auth = true;
 		initConnection();
-		/*
-		Map<String,String> params = new HashMap<String,String>();
-		params.put("jid", jid);
-		params.put("pwd", pwd);
-		String rtn = HttpUtils.http(auth_service, params);
-		logger.info(rtn);
-		JSONObject success = JSONObject.fromObject(rtn);
-		if(success.getBoolean("success")){
-			JSONObject entity = JSONObject.fromObject(success.getString("entity"));
-			String host = entity.getString("host");
-			this.emsg_host = host.split(":")[0];
-			this.emsg_port = Integer.parseInt(host.split(":")[1]);
-			this.inner_token = entity.getString("inner_token");
-			this.auth = true;
-			initConnection();
-		}else{
-			new Exception("fail auth ::>"+success.getString("entity"));
-		}*/
 		//XXX 启动重连线程
 		Thread reconnect = new Thread(new Runnable(){
 			@Override
@@ -84,7 +75,7 @@ public class EmsgClient implements Define {
     	reconnect.start();
     }
     
-    public void setPacketListener(PacketListener listener){
+    public void setPacketListener(PacketListener<T> listener){
     	this.listener = listener;
     }
    
@@ -163,7 +154,7 @@ public class EmsgClient implements Define {
 		reader = socket.getInputStream();
         writer = socket.getOutputStream();
         //TODO if first new reader
-        packetReader = new PacketReader(this);
+        packetReader = new PacketReader<T>(this);
         packetWriter = new PacketWriter();
         heart_beat_ack = new ArrayBlockingQueue<String>(2, true);
         this.heart = UUID.randomUUID().toString();
@@ -174,7 +165,7 @@ public class EmsgClient implements Define {
 		return auth;
 	}
     
-	class IOListener {
+	class IOListener extends PacketDecoder {
 		Thread heartbeatThread = null;
 		Thread readThread = null;
 		Thread writeThread = null;
@@ -220,26 +211,28 @@ public class EmsgClient implements Define {
 					try{
 						byte[] buff = new byte[1024];
 						int len = 0;
-						StringBuffer sb = new StringBuffer();
+						List<Byte> part = new ArrayList<Byte>();
 						while((len=reader.read(buff))!=0&&len!=-1){//当远程流断开时，会返回 0
-							System.out.println(len);
-							String packet = new String(buff,0,len);
-							String[] arr = packet.split(END_TAG);
-							for(int i=0 ; i<arr.length;i++){
-								if(i==arr.length-1 && !packet.endsWith(END_TAG)){
-									//这个包没接全
-									sb.append(arr[i]);
+							List<Byte> list = parseBinaryList(buff,len);
+							List<String> packetList = new ArrayList<String>();
+							List<Byte> new_part = new ArrayList<Byte>();
+							splitByteArray(list,END_TAG,packetList,new_part,part);
+							for(int i=0;i<packetList.size();i++){
+								String packet = packetList.get(i);
+								// System.out.println("packet = "+packet);
+								// dispach heart beat and message
+								if(HEART_BEAT.equals(packet)){
+									//心跳单独处理
+									heart_beat_ack.poll();
 								}else{
-									sb.append(arr[i]);
-									String msg = sb.toString();
-									//TODO dispach heart beat and message
-									if(HEART_BEAT.equals(msg)){
-										//心跳单独处理
-										heart_beat_ack.poll();
-									}else{
-										packetReader.recv(msg);
+									packetReader.recv(packet);
+								}
+								//将新的片段赋给中间变量
+								part.clear();
+								if(new_part!=null&&new_part.size()>0){
+									for(byte pb : new_part){
+										part.add(pb);
 									}
-									sb.setLength(0);
 								}
 							}
 						}
@@ -285,6 +278,11 @@ public class EmsgClient implements Define {
 		}
 	}
 	
+	public void send(IPacket<T> packet) throws InterruptedException{
+		String encode_message = getProvider().encode(packet);
+		packetWriter.write(encode_message);
+	}
+	
 	public void send(String message) throws InterruptedException{
 		packetWriter.write(message);
 	}
@@ -325,4 +323,12 @@ public class EmsgClient implements Define {
 		return jid;
 	}
     
+    public IProvider<T> getProvider() {
+    	return provider;
+	}
+
+	public void setProvider(IProvider<T> provider) {
+		this.provider = provider;
+	}
+
 }

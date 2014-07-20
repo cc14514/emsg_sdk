@@ -4,9 +4,9 @@ import java.util.Date;
 
 public class MyLogger {
 	
-	private Class clazz = null;
+	private Class<?> clazz = null;
 	
-	public MyLogger(Class c){
+	public MyLogger(Class<?> c){
 		clazz = c;
 	}
 	

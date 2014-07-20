@@ -29,4 +29,9 @@ public interface Define {
 	public static final int MSG_TYPE_STATE = 3;
 	public static final int MSG_TYPE_SYSTEM = 4;
 	
+	public static final int ACK_DISABLE = 0;
+	public static final int ACK_ENABLE = 1;
+	
+	public static final String VSN = "0.0.1";
+	
 }
