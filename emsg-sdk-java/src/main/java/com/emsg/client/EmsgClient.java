@@ -128,11 +128,15 @@ public class EmsgClient<T> implements Define {
     
     private final BlockingQueue<String> loop_queue = new ArrayBlockingQueue<String>(1, true);;
     
+    private static int reconnect_counter = 0;
+    
     private void loop(){
     	String cmd = null;
     	try {
+    		// TODO 当重连被触发时，应当检测网络是否通畅
     		cmd = loop_queue.take();
     		if("do".equals(cmd)){
+    			++reconnect_counter;
     			logger.info("======== reconnection_loop_start ======== "+cmd);
     			initConnection();
     		}
@@ -140,7 +144,18 @@ public class EmsgClient<T> implements Define {
 		} catch (Exception e) {
 			try {
 				logger.info("loop---->"+e.getMessage());
-				Thread.sleep(1000);
+				// TODO 这里的等待时间应该是会变化的，比如第一分钟，每5秒检查一次，
+				// 超过1分钟，就阻塞到网络是否链接的事件上
+				// 而且应该是根据一些事件来阻塞和解除阻塞的
+				int sleep = 0;
+				if(reconnect_counter<=10){
+					sleep = 3000;
+				}else if(reconnect_counter>10 && reconnect_counter<=20){
+					sleep = 1000*10;
+				}else{
+					sleep = 1000*30;
+				}
+				Thread.sleep(sleep);
 				loop_queue.put("do");
 			} catch (InterruptedException e1) {
 				e1.printStackTrace();
