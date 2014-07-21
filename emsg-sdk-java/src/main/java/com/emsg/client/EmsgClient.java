@@ -105,8 +105,12 @@ public class EmsgClient<T> implements Define {
 	}
    
     public void close(){
+    	try {
+			loop_queue.put(KILL);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
     	shutdown();
-    	
     }
     private void reconnection(String reconnectSN) {
     	if(this.reconnectSN==null){
