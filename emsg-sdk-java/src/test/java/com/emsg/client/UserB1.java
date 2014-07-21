@@ -22,9 +22,10 @@ public class UserB1 implements Define{
     	
     	client.auth("1111@test.com","123123");
     	//发送一个普通聊天消息，给 0000@test.com ，内容是 hello world
-    	IPacket<DefPayload> packet = new DefPacket("0000@test.com","hello world",Define.MSG_TYPE_CHAT);
-    	
-		client.send(packet);
+    	for(int i=0;i<20;i++){
+    		IPacket<DefPayload> packet = new DefPacket("0000@test.com","xxxxx__________"+i,Define.MSG_TYPE_CHAT);
+    		client.send(packet);
+    	}
 		Thread.sleep(3000);
 	}
 	

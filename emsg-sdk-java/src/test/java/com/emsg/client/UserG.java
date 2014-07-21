@@ -9,7 +9,7 @@ import net.sf.json.JSONObject;
 public class UserG implements Define{
 	
 	
-	public static void main(String[] args) throws Exception {
+/*	public static void main(String[] args) throws Exception {
 		final EmsgClient client = new EmsgClient("192.168.1.11",4222);
     	client.setPacketListener(new PacketListener() {
 			@Override
@@ -39,6 +39,6 @@ public class UserG implements Define{
     	client.send(msg);
     	
 		Thread.sleep(Integer.MAX_VALUE);
-	}
+	}*/
 	
 }

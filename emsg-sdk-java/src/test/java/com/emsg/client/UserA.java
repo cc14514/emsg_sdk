@@ -7,7 +7,7 @@ import net.sf.json.JSONObject;
 public class UserA {
 	
 	public static void main(String[] args) throws Exception {
-		
+/*		
 		EmsgClient client = new EmsgClient("192.168.1.11",4222);
     	client.setPacketListener(new PacketListener() {
 			@Override
@@ -15,10 +15,10 @@ public class UserA {
 				System.out.println("aaa recv ===> "+packet);
 			}
 		});
-    	client.auth("aaa@test.com/123","123123");
+    	client.auth("userb@test.com/123","123123");
 
 		JSONObject packet = new JSONObject();
-
+*/
 /*		
 		[{<<"envelope">>,
             [{<<"id">>,<<"d8e98cf9-147c-4853-a1cc-6c32d6da562c">>},
@@ -34,7 +34,7 @@ public class UserA {
 		JSONObject envelope = new JSONObject();
 		envelope.put("id", UUID.randomUUID().toString());
 		envelope.put("type", 1);
-		envelope.put("from", "aaa@test.com/123");
+		envelope.put("from", "userb@test.com/123");
 		envelope.put("to", "bbb@test.com");
 		envelope.put("ack", 0);
 		
@@ -49,7 +49,7 @@ public class UserA {
 		
 		payload.put("attrs", attrs);
 		payload.put("content", content);
-		
+/*		
 		packet.put("envelope",envelope);
 		packet.put("payload",payload);
 		packet.put("vsn","0.0.1");
@@ -57,6 +57,7 @@ public class UserA {
 		String msg = packet.toString();
     	client.send(msg);
 		Thread.sleep(Integer.MAX_VALUE);
+*/
 	}
 	
 }

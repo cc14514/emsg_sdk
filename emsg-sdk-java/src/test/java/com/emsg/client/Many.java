@@ -11,7 +11,7 @@ public class Many {
 	}
 	
 	private static void u() throws Exception {
-		for(int i=0;i<10000;i++){
+		/*for(int i=0;i<10000;i++){
 			Thread.sleep(100);
 			final int n = i;
 			new Thread(){
@@ -47,11 +47,11 @@ public class Many {
 					}
 				}
 			}.start();
-		}
+		}*/
 	}
 	
 	private static void s(int m) throws Exception {
-		List<EmsgClient> list = new ArrayList<EmsgClient>();
+/*		List<EmsgClient> list = new ArrayList<EmsgClient>();
 		for(int i=0;i<m;i++){
 			final int j = i;
 			try{
@@ -70,7 +70,7 @@ public class Many {
 				e.printStackTrace();
 			}
 		}
-		Thread.sleep(Integer.MAX_VALUE);
+		Thread.sleep(Integer.MAX_VALUE);*/
 	}
 	
 }
