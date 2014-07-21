@@ -1,7 +1,8 @@
 package com.emsg.test.offlinemsg.p2p;
 
-import junit.framework.Assert;
+import java.util.UUID;
 
+import junit.framework.Assert;
 import net.sf.json.JSONObject;
 
 import org.junit.After;
@@ -9,8 +10,15 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.emsg.client.Constants;
+import com.emsg.client.Define;
+import com.emsg.client.EmsgClient;
 import com.emsg.client.PacketListener;
-import com.emsg.client.SimpleClient;
+import com.emsg.client.beans.DefPacket;
+import com.emsg.client.beans.DefPayload;
+import com.emsg.client.beans.DefProvider;
+import com.emsg.client.beans.Envelope;
+import com.emsg.client.beans.IEnvelope;
+import com.emsg.client.beans.IPacket;
 
 /**
  * 测试离线消息存储数量（如10条），用户<-->用户场景：
@@ -25,50 +33,61 @@ public class OfflineMsgTester {
 
 	// 消息计数器
 	public static int counter = 0;
-	private SimpleClient sender;
-	private SimpleClient receiver;
+	private EmsgClient<DefPayload> sender;
+	private EmsgClient<DefPayload> receiver;
 	final String message = "Test message";
 	
     @Before
     public void setUp() throws Exception {
     	counter = 0;
-    	sender = new SimpleClient(Constants.from_account, Constants.from_password);
-    	receiver = new SimpleClient(Constants.to_account, Constants.to_password);
+    	sender = new EmsgClient<DefPayload>(Constants.server_host,Constants.server_port);
+    	receiver = new EmsgClient<DefPayload>(Constants.server_host,Constants.server_port);
     }
 
     @After
     public void clearup() throws Exception {
-    	sender.shutdown();
-    	receiver.shutdown();
+    	sender.close();
+    	receiver.close();
     }
 
     @Test
     public void testOfflineMsgCountLessThan() throws Exception {
+    	sender.setProvider(new DefProvider());
+    	sender.setHeartBeat(30000);
+    	sender.setPacketListener(new PacketListener<DefPayload>() {
+			@Override
+			public void processPacket(IPacket<DefPayload> packet) {
+				System.out.println(Constants.from_account + " packet__recv ===> "+packet);
+			}
+		});
+    	sender.auth(Constants.from_account, Constants.from_password);
+
+    	
     	// 在线用户给离线用户发送消息
-    	sender.init(null);
     	Thread.sleep(1000);
     	for (int i=0; i<9; i++) {
-    		sender.send(Constants.to_account, message+i);
+    		sender.send(new DefPacket(Constants.to_account, message + i, Constants.MSG_TYPE_CHAT));
     	}
 
     	// 等待消息保存为离线消息
     	Thread.sleep(1000);
     	
     	// 离线用户上线，接收离线消息
-    	receiver.init(new PacketListener() {
+    	receiver.setProvider(new DefProvider());
+    	receiver.setHeartBeat(30000);
+    	receiver.setPacketListener(new PacketListener<DefPayload>() {
 			@Override
-			public void processPacket(String packet) {
-				System.out.println("aaa recv ===> "+counter + "  "+packet);
-				
-				JSONObject jp = JSONObject.fromObject(packet);
-				JSONObject payload = jp.getJSONObject("payload");
-				String content = payload.getString("content");
-				Assert.assertTrue(content.equals(message + counter));
-				
-				// 使用计数器计算离线消息个数
-				counter++;
+			public void processPacket(IPacket<DefPayload> packet) {
+				System.out.println(Constants.to_account + " packet__recv ===> "+packet);
+				if (packet.getEnvelope().getType() == Constants.MSG_TYPE_CHAT) {
+					Assert.assertTrue(packet.getPayload().getContent().equals(message + (counter)));
+					
+					// 使用计数器计算离线消息个数
+					counter++;
+				}
 			}
 		});
+    	receiver.auth(Constants.to_account, Constants.to_password);
     	
     	// 等待离线消息被完全接收
     	Thread.sleep(2000);
@@ -80,31 +99,41 @@ public class OfflineMsgTester {
 
     @Test
     public void testOfflineMsgCount() throws Exception {
+    	sender.setProvider(new DefProvider());
+    	sender.setHeartBeat(30000);
+    	sender.setPacketListener(new PacketListener<DefPayload>() {
+			@Override
+			public void processPacket(IPacket<DefPayload> packet) {
+				System.out.println(Constants.from_account + " packet__recv ===> "+packet);
+			}
+		});
+    	sender.auth(Constants.from_account, Constants.from_password);
+
     	// 在线用户给离线用户发送消息
-    	sender.init(null);
     	Thread.sleep(1000);
     	for (int i=0; i<20; i++) {
-    		sender.send(Constants.to_account, message+i);
+    		sender.send(new DefPacket(Constants.to_account, message + i, Constants.MSG_TYPE_CHAT));
     	}
 
     	// 等待消息保存为离线消息
     	Thread.sleep(1000);
     	
     	// 离线用户上线，接收离线消息
-    	receiver.init(new PacketListener() {
+    	receiver.setProvider(new DefProvider());
+    	receiver.setHeartBeat(30000);
+    	receiver.setPacketListener(new PacketListener<DefPayload>() {
 			@Override
-			public void processPacket(String packet) {
-				System.out.println("aaa recv ===> "+counter + "  "+packet);
-
-				JSONObject jp = JSONObject.fromObject(packet);
-				JSONObject payload = jp.getJSONObject("payload");
-				String content = payload.getString("content");
-				Assert.assertTrue(content.equals(message + (counter + 10)));
-				
-				// 使用计数器计算离线消息个数
-				counter++;
+			public void processPacket(IPacket<DefPayload> packet) {
+				System.out.println(Constants.to_account + " packet__recv ===> "+packet);
+				if (packet.getEnvelope().getType() == Constants.MSG_TYPE_CHAT) {
+					Assert.assertTrue(packet.getPayload().getContent().equals(message + (counter + 10)));
+					
+					// 使用计数器计算离线消息个数
+					counter++;
+				}
 			}
 		});
+    	receiver.auth(Constants.to_account, Constants.to_password);
     	
     	// 等待离线消息被完全接收
     	Thread.sleep(2000);
