@@ -2,6 +2,9 @@ package com.emsg.client;
 
 import java.util.UUID;
 
+import com.emsg.client.beans.DefPayload;
+import com.emsg.client.beans.IPacket;
+
 import net.sf.json.JSONObject;
 
 
@@ -10,10 +13,10 @@ public class UserG implements Define{
 	
 	
 	public static void main(String[] args) throws Exception {
-		final EmsgClient client = new EmsgClient("192.168.1.11",4222);
-    	client.setPacketListener(new PacketListener() {
+		EmsgClient<DefPayload> client = new EmsgClient<DefPayload>("192.168.1.11",4222);
+    	client.setPacketListener(new PacketListener<DefPayload>() {
 			@Override
-			public void processPacket(String packet) {
+			public void processPacket(IPacket<DefPayload> packet) {
 				System.out.println("1001 recv ===> "+packet);
 			}
 		});

@@ -4,14 +4,17 @@ import java.util.UUID;
 
 import net.sf.json.JSONObject;
 
+import com.emsg.client.beans.DefPayload;
+import com.emsg.client.beans.IPacket;
+
 public class UserA {
 	
 	public static void main(String[] args) throws Exception {
 		
-		EmsgClient client = new EmsgClient("192.168.1.11",4222);
-    	client.setPacketListener(new PacketListener() {
+		EmsgClient<DefPayload> client = new EmsgClient<DefPayload>("192.168.1.11",4222);
+    	client.setPacketListener(new PacketListener<DefPayload>() {
 			@Override
-			public void processPacket(String packet) {
+			public void processPacket(IPacket<DefPayload> packet) {
 				System.out.println("aaa recv ===> "+packet);
 			}
 		});

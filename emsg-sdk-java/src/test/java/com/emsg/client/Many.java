@@ -3,6 +3,9 @@ package com.emsg.client;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.emsg.client.beans.DefPayload;
+import com.emsg.client.beans.IPacket;
+
 
 public class Many {
 	
@@ -17,10 +20,10 @@ public class Many {
 			new Thread(){
 				public void run(){
 					try{
-						EmsgClient client = new EmsgClient("",0);
-						client.setPacketListener(new PacketListener() {
+						EmsgClient<DefPayload> client = new EmsgClient<DefPayload>("192.168.1.11",4222);
+				    	client.setPacketListener(new PacketListener<DefPayload>() {
 							@Override
-							public void processPacket(String packet) {
+							public void processPacket(IPacket<DefPayload> packet) {
 								System.err.println("recv ===> "+packet);
 							}
 						});
@@ -51,15 +54,14 @@ public class Many {
 	}
 	
 	private static void s(int m) throws Exception {
-		List<EmsgClient> list = new ArrayList<EmsgClient>();
+		List<EmsgClient<DefPayload>> list = new ArrayList<EmsgClient<DefPayload>>();
 		for(int i=0;i<m;i++){
 			final int j = i;
 			try{
-				EmsgClient client = new EmsgClient("",0);
-				client.setHeartBeat(100*1000);
-				client.setPacketListener(new PacketListener() {
+				EmsgClient<DefPayload> client = new EmsgClient<DefPayload>("192.168.1.11",4222);
+		    	client.setPacketListener(new PacketListener<DefPayload>() {
 					@Override
-					public void processPacket(String packet) {
+					public void processPacket(IPacket<DefPayload> packet) {
 						System.err.println("["+j+"] recv ===> "+packet);
 					}
 				});
