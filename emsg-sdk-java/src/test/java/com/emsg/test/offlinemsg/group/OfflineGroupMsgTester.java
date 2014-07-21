@@ -1,16 +1,22 @@
 package com.emsg.test.offlinemsg.group;
 
-import junit.framework.Assert;
+import java.util.UUID;
 
-import net.sf.json.JSONObject;
+import junit.framework.Assert;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.emsg.client.Constants;
+import com.emsg.client.EmsgClient;
 import com.emsg.client.PacketListener;
-import com.emsg.client.SimpleClient;
+import com.emsg.client.beans.DefPacket;
+import com.emsg.client.beans.DefPayload;
+import com.emsg.client.beans.DefProvider;
+import com.emsg.client.beans.Envelope;
+import com.emsg.client.beans.IEnvelope;
+import com.emsg.client.beans.IPacket;
 
 /**
  * 测试离线消息存储数量（如10条），用户<-->群场景：
@@ -25,99 +31,75 @@ public class OfflineGroupMsgTester {
 
 	// 消息计数器
 	public static int counter = 0;
-	private SimpleClient sender;
-	private SimpleClient receiver;
+	private EmsgClient<DefPayload> sender;
+	private EmsgClient<DefPayload> receiver;
+	final String groupMemberSender = "1001@test.com/123";
+	final String groupMemberReceiver = "1002@test.com/123";
+	
 	final String message = "Test message";
 	
     @Before
     public void setUp() throws Exception {
     	counter = 0;
-    	sender = new SimpleClient("1001@test.com/123", Constants.from_password);
-    	receiver = new SimpleClient("1002@test.com/123", Constants.to_password);
+    	sender = new EmsgClient<DefPayload>(Constants.server_host,Constants.server_port);
+    	receiver = new EmsgClient<DefPayload>(Constants.server_host,Constants.server_port);
     }
 
     @After
     public void clearup() throws Exception {
-    	sender.shutdown();
-    	receiver.shutdown();
+    	sender.close();
+    	receiver.close();
     }
-    
-    @Test
-    public void testOfflineMsgCount() throws Exception {
-    	// 在线用户给离线用户发送消息
-    	sender.init( new PacketListener() {
-			@Override
-			public void processPacket(String packet) {
-				// 发送者不应该收到自己发送的群消息
-				Assert.fail();
-			}
-		});
 
-    	// 在线用户给离线用户发送消息
-    	Thread.sleep(1000);
-    	for (int i=0; i<20; i++) {
-    		sender.sendToGroup("1", message+i);
-    	}
-
-    	// 等待消息保存为离线消息
-    	Thread.sleep(1000);
-    	
-    	receiver.init(new PacketListener() {
-			@Override
-			public void processPacket(String packet) {
-				System.out.println("aaa recv ===> "+counter + "  "+packet);
-
-				JSONObject jp = JSONObject.fromObject(packet);
-				JSONObject payload = jp.getJSONObject("payload");
-				String content = payload.getString("content");
-				Assert.assertTrue(content.equals(message + (counter + 10)));
-				
-				// 使用计数器计算离线消息个数
-				counter++;
-			}
-		});
-    	
-    	// 等待离线消息被完全接收
-    	Thread.sleep(2000);
-    	
-    	// 判断离线消息数量
-    	Assert.assertTrue(counter == Constants.OFFLINE_MSG_COUNT);
-    }
-    
     @Test
     public void testOfflineMsgCountLessThan() throws Exception {
-    	// 在线用户给离线用户发送消息
-    	sender.init( new PacketListener() {
+    	sender.setProvider(new DefProvider());
+    	sender.setHeartBeat(30000);
+    	sender.setPacketListener(new PacketListener<DefPayload>() {
 			@Override
-			public void processPacket(String packet) {
-				// 发送者不应该收到自己发送的群消息
-				Assert.fail();
+			public void processPacket(IPacket<DefPayload> packet) {
+				System.out.println(groupMemberSender + " packet__recv ===> "+packet);
 			}
 		});
+    	sender.auth(groupMemberSender, Constants.from_password);
 
+    	IPacket<DefPayload> packet = new DefPacket();
+    	IEnvelope envelope = new Envelope();
+    	DefPayload payload = new DefPayload();
+    	packet.setEnvelope(envelope);
+    	packet.setPayload(payload);
+    	packet.setVsn("0.0.1");
+    	envelope.setType(Constants.MSG_TYPE_GROUP_CHAT);
+    	envelope.setAck(1);
+    	envelope.setFrom(groupMemberSender);
+    	envelope.setGid("1");
     	// 在线用户给离线用户发送消息
     	Thread.sleep(1000);
     	for (int i=0; i<9; i++) {
-    		sender.sendToGroup("1", message+i);
+    		envelope.setId(UUID.randomUUID().toString());
+        	payload.setContent(message + i);
+        	sender.send(packet);
     	}
-
+    	
     	// 等待消息保存为离线消息
     	Thread.sleep(1000);
     	
-    	receiver.init(new PacketListener() {
+    	// 离线用户上线，接收离线消息
+    	receiver.setProvider(new DefProvider());
+    	receiver.setHeartBeat(30000);
+    	receiver.setPacketListener(new PacketListener<DefPayload>() {
 			@Override
-			public void processPacket(String packet) {
-				System.out.println("aaa recv ===> "+counter + "  "+packet);
-
-				JSONObject jp = JSONObject.fromObject(packet);
-				JSONObject payload = jp.getJSONObject("payload");
-				String content = payload.getString("content");
-				Assert.assertTrue(content.equals(message + counter));
-				
-				// 使用计数器计算离线消息个数
-				counter++;
+			public void processPacket(IPacket<DefPayload> packet) {
+				System.out.println("packet__recv ===> "+packet);
+				if (packet.getEnvelope().getType() == Constants.MSG_TYPE_GROUP_CHAT) {
+					Assert.assertTrue(packet.getPayload().getContent().equals(message + (counter)));
+					
+					// 使用计数器计算离线消息个数
+					counter++;
+				}
 			}
 		});
+    	receiver.auth(groupMemberReceiver, Constants.to_password);
     	
     	// 等待离线消息被完全接收
     	Thread.sleep(2000);
@@ -127,4 +109,62 @@ public class OfflineGroupMsgTester {
     }
 
 
+    @Test
+    public void testOfflineMsgCount() throws Exception {
+    	sender.setProvider(new DefProvider());
+    	sender.setHeartBeat(30000);
+    	sender.setPacketListener(new PacketListener<DefPayload>() {
+			@Override
+			public void processPacket(IPacket<DefPayload> packet) {
+				System.out.println(groupMemberSender + " packet__recv ===> "+packet);
+			}
+		});
+    	sender.auth(groupMemberSender, Constants.from_password);
+
+    	// 在线用户给离线用户发送消息
+    	Thread.sleep(1000);
+    	IPacket<DefPayload> packet = new DefPacket();
+    	IEnvelope envelope = new Envelope();
+    	DefPayload payload = new DefPayload();
+    	packet.setEnvelope(envelope);
+    	packet.setPayload(payload);
+    	packet.setVsn("0.0.1");
+    	envelope.setType(Constants.MSG_TYPE_GROUP_CHAT);
+    	envelope.setAck(1);
+    	envelope.setFrom(groupMemberSender);
+    	envelope.setGid("1");
+    	// 在线用户给离线用户发送消息
+    	Thread.sleep(1000);
+    	for (int i=0; i<20; i++) {
+    		envelope.setId(UUID.randomUUID().toString());
+        	payload.setContent(message + i);
+        	sender.send(packet);
+    	}
+
+    	// 等待消息保存为离线消息
+    	Thread.sleep(1000);
+    	
+    	// 离线用户上线，接收离线消息
+    	receiver.setProvider(new DefProvider());
+    	receiver.setHeartBeat(30000);
+    	receiver.setPacketListener(new PacketListener<DefPayload>() {
+			@Override
+			public void processPacket(IPacket<DefPayload> packet) {
+				System.out.println("packet__recv ===> "+packet);
+				if (packet.getEnvelope().getType() == Constants.MSG_TYPE_GROUP_CHAT) {
+					Assert.assertTrue(packet.getPayload().getContent().equals(message + (counter + 10)));
+					
+					// 使用计数器计算离线消息个数
+					counter++;
+				}
+			}
+		});
+    	receiver.auth(groupMemberReceiver, Constants.to_password);
+    	
+    	// 等待离线消息被完全接收
+    	Thread.sleep(2000);
+    	
+    	// 判断离线消息数量
+    	Assert.assertTrue(counter == Constants.OFFLINE_MSG_COUNT);
+    }
 }
