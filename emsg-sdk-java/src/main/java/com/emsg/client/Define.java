@@ -14,6 +14,10 @@ public interface Define {
 	 */
 	public static final String HEART_BEAT = "\02";
 	/**
+	 * 服务器KILL信号
+	 */
+	public static final String SERVER_KILL = "\03";
+	/**
 	 * 心跳频率
 	 */
 	public static final int HEART_BEAT_FREQ = 1000*50;
