@@ -105,12 +105,8 @@ public class EmsgClient<T> implements Define {
 	}
    
     public void close(){
-    	try {
-			loop_queue.put(KILL);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-    	shutdown();
+		loop_queue.add(KILL);
+		shutdown();
     }
     private void reconnection(String reconnectSN) {
     	if(this.reconnectSN==null){
@@ -126,7 +122,7 @@ public class EmsgClient<T> implements Define {
     	}
     }
     
-    private final BlockingQueue<String> loop_queue = new ArrayBlockingQueue<String>(1, true);;
+    private final BlockingQueue<String> loop_queue = new ArrayBlockingQueue<String>(2, true);;
     
     private static int reconnect_counter = 0;
     
@@ -238,11 +234,14 @@ public class EmsgClient<T> implements Define {
 							splitByteArray(list,END_TAG,packetList,new_part,part);
 							for(int i=0;i<packetList.size();i++){
 								String packet = packetList.get(i);
-								// System.out.println("packet = "+packet);
+								System.out.println("--> packet = "+packet);
 								// dispach heart beat and message
 								if(HEART_BEAT.equals(packet)){
 									//心跳单独处理
 									heart_beat_ack.poll();
+								}else if(SERVER_KILL.equals(packet)){
+									logger.debug("server_kill="+packet);
+									close();
 								}else{
 									packetReader.recv(packet);
 								}
@@ -257,7 +256,6 @@ public class EmsgClient<T> implements Define {
 						}
 						throw new Exception("emsg_retome_socket_closed");
 					}catch(Exception e){
-						e.printStackTrace();
 						shutdown();
 						reconnection("listenerRead");
 					}
