@@ -137,6 +137,7 @@ public class EmsgClient<T> implements Define {
     			initConnection();
     		}
     		reconnectSN=null;
+    		reconnect_counter=0;
 		} catch (Exception e) {
 			try {
 				logger.info("loop---->"+e.getMessage());
