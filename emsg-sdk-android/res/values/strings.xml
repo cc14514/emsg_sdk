@@ -1,8 +1,0 @@
-<resources>
-
-    <string name="app_name">EMSG</string>
-    <string name="menu_settings">Settings</string>
-    <string name="title_activity_main">EMSG DEMO</string>
-    <string name="emsg_host">222.128.11.38</string>
-	<string name="emsg_port">4222</string>
-</resources>
