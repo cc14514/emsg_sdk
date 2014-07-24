@@ -351,5 +351,14 @@ public class EmsgClient<T> implements Define {
 	public void setProvider(IProvider<T> provider) {
 		this.provider = provider;
 	}
-
+	
+	/**
+	 * true 服务器已断开
+	 * false 服务器已链接
+	 * @return
+	 */
+	public boolean isClose(){
+		return isClose;
+	}
+	
 }
