@@ -1,23 +1,17 @@
 package com.emsg.test.offlinemsg.p2p;
 
-import java.util.UUID;
-
 import junit.framework.Assert;
-import net.sf.json.JSONObject;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.emsg.client.Constants;
-import com.emsg.client.Define;
 import com.emsg.client.EmsgClient;
 import com.emsg.client.PacketListener;
 import com.emsg.client.beans.DefPacket;
 import com.emsg.client.beans.DefPayload;
 import com.emsg.client.beans.DefProvider;
-import com.emsg.client.beans.Envelope;
-import com.emsg.client.beans.IEnvelope;
 import com.emsg.client.beans.IPacket;
 
 /**

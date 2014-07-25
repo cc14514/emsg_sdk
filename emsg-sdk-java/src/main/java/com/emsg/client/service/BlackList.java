@@ -1,16 +1,18 @@
 package com.emsg.client.service;
 
-import java.util.ArrayList;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
-
 import com.emsg.client.HttpUtils;
 import com.emsg.client.MyLogger;
+import com.emsg.client.util.JsonUtil;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 
 
 /**
@@ -41,13 +43,11 @@ public class BlackList {
 		return buildArgs(INF_SERVICE,method,args);
 	}
 	private String buildArgs(String service,String method,Map<String,String> args){
-		JSONObject params = new JSONObject();
-		params.putAll(args);
-		JSONObject json = new JSONObject();
-		json.put("sn", UUID.randomUUID().toString());
-		json.put("service", service);
-		json.put("method", method);
-		json.put("params", params);
+		JsonObject json = new JsonObject();
+		json.addProperty("sn", UUID.randomUUID().toString());
+		json.addProperty("service", service);
+		json.addProperty("method", method);
+		json.add("params", new Gson().toJsonTree(args, args.getClass()));
 		return json.toString();
 	}
 	
@@ -69,10 +69,10 @@ public class BlackList {
 		Map<String,String> form = new HashMap<String,String>();
 		form.put("body", body);
 		String rtn = HttpUtils.http(INF_URL, form);
-		JSONObject json = JSONObject.fromObject(rtn);
+		JsonObject json = JsonUtil.parse(rtn);
 		logger.debug(json.toString());
-		if(!json.getBoolean("success")){
-			throw new Exception(json.getString("entity"));
+		if(!JsonUtil.getAsBoolean(json, "success")){
+			throw new Exception(JsonUtil.getAsString(json, "entity"));
 		}
 	} 
 	/**
@@ -93,10 +93,10 @@ public class BlackList {
 		Map<String,String> form = new HashMap<String,String>();
 		form.put("body", body);
 		String rtn = HttpUtils.http(INF_URL, form);
-		JSONObject json = JSONObject.fromObject(rtn);
+		JsonObject json = JsonUtil.parse(rtn);
 		logger.debug(json.toString());
-		if(!json.getBoolean("success")){
-			throw new Exception(json.getString("entity"));
+		if(!JsonUtil.getAsBoolean(json, "success")){
+			throw new Exception(JsonUtil.getAsString(json, "entity"));
 		}
 	}
 	
@@ -109,29 +109,25 @@ public class BlackList {
 		Map<String,String> form = new HashMap<String,String>();
 		form.put("body", body);
 		String rtn = HttpUtils.http(INF_URL, form);
-		JSONObject json = JSONObject.fromObject(rtn);
+		JsonObject json = JsonUtil.parse(rtn);
 		logger.debug(json.toString());
-		if(!json.getBoolean("success")){
-			throw new Exception(json.getString("entity"));
+		if(!JsonUtil.getAsBoolean(json, "success")){
+			throw new Exception(JsonUtil.getAsString(json, "entity"));
 		}else{
-			List<Map<String,String>> result = new ArrayList<Map<String,String>>();
-			JSONArray arr = json.getJSONArray("entity");
-			if(arr!=null&&arr.size()>0)
-				for(int i=0;i<arr.size();i++){
-					JSONObject u = arr.getJSONObject(i);
-					Map<String,String> um = new HashMap<String,String>();
-					um.put("jid", u.getString("jid"));
-					um.put("ct", u.getString("ct"));
-					logger.debug(um);
-					result.add(um);
-				}
+			List<Map<String,String>> result = null;
+			JsonUtil.getAsJsonArray(json, "entity");
+			JsonArray arr = JsonUtil.getAsJsonArray(json, "entity");
+			if(arr!=null&&arr.size()>0) {
+				Type type = new TypeToken<List<Map<String, String>>>(){}.getType();
+				result = new Gson().fromJson(arr, type);
+			}
 			return result;
 		}
 	}
 	
 	public static void main(String[] args) throws Exception {
 		BlackList b = new BlackList();
-		b.fetch("userb@test.com", "123123");
+		System.out.println(b.fetch("userb@test.com", "123123"));
 	}
 	
 }

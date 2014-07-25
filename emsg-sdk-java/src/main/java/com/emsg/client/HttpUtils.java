@@ -9,17 +9,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import net.sf.json.JSONObject;
-
 public class HttpUtils {
 	static MyLogger logger = new MyLogger(HttpUtils.class);
 	public static void main(String[] args) {
 		String body="{\"sn\":\"SN_9879879\",\"service\":\"emsg_group\",\"method\":\"reload\",\"params\":{\"domain\":\"test.com\",\"license\":\"123456\",\"gid\":\"3\"}}";
 		Map<String,String> params = new HashMap<String,String>();
 		params.put("body", body);
-		String rtn = HttpUtils.http("http://192.168.1.11:4280", params);
-		JSONObject json = JSONObject.fromObject(rtn);
-		logger.debug(json.toString());
 	}
 	public static String http(String url, Map<String, String> params) {
 		URL u = null;

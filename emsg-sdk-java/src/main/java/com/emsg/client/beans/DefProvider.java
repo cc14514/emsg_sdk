@@ -1,50 +1,47 @@
 package com.emsg.client.beans;
 
-import net.sf.json.JSONObject;
-
 import com.emsg.client.Define;
+import com.emsg.client.util.JsonUtil;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 public class DefProvider implements IProvider<DefPayload> {
 
 	@Override
 	public String encode(IPacket<DefPayload> packet) {
-		IEnvelope envelope = packet.getEnvelope();
-		DefPayload payload = packet.getPayload();
-		JSONObject j_envelope = JSONObject.fromObject(envelope);
-		JSONObject j_payload = JSONObject.fromObject(payload);
-		JSONObject j_packet = new JSONObject();
-		j_packet.put("envelope", j_envelope);
-		j_packet.put("payload", j_payload);
-		j_packet.put("vsn", Define.VSN);
-		return j_packet.toString();
+		return new Gson().toJson(packet);
 	}
 
 	@Override
 	public IPacket<DefPayload> decode(String packet) {
-		JSONObject jp = JSONObject.fromObject(packet);
-		JSONObject jenvelope = jp.getJSONObject("envelope");
-		JSONObject jpayload = jp.getJSONObject("payload");
+		JsonParser parser = new JsonParser();
+		JsonElement elPacket = parser.parse(packet);
+		JsonObject jPacket = elPacket.getAsJsonObject();
+		
+		JsonObject jenvelope = JsonUtil.getAsJsonObject(jPacket, "envelope");
+		JsonObject jpayload = JsonUtil.getAsJsonObject(jPacket, "payload");
+		
 		String vsn = Define.VSN;
-		if(jp.has("vsn")){
-			vsn = jp.getString("vsn");
+		if(elPacket.getAsJsonObject().has("vsn")){
+			vsn = JsonUtil.getAsString(jPacket, "vsn");
 		}
 		
-		JSONObject jentity = null;
-		if(jp.has("entity")){
-			jentity = jp.getJSONObject("entity");
-		}
-		
-		IEnvelope envelope = (IEnvelope)JSONObject.toBean(jenvelope, Envelope.class);
+		JsonObject jentity = JsonUtil.getAsJsonObject(jPacket, "entity");
+		Gson gson = new Gson();
+		gson.fromJson(jenvelope, Envelope.class);
+		IEnvelope envelope = gson.fromJson(jenvelope, Envelope.class);
 		DefPayload payload = null;
 		Entity entity = null;
 		IPacket<DefPayload> r = new DefPacket(envelope,payload);
 		r.setVsn(vsn);
 		if(jpayload!=null){
-			payload = (DefPayload)JSONObject.toBean(jpayload, DefPayload.class);
+			payload = gson.fromJson(jpayload, DefPayload.class);
 			r.setPayload(payload);
 		}
 		if(jentity!=null){
-			entity = (Entity)JSONObject.toBean(jentity, Entity.class);
+			entity = gson.fromJson(jentity, Entity.class);
 			r.setEntity(entity);
 		}
 		return r;

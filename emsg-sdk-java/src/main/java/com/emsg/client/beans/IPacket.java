@@ -12,7 +12,7 @@ public interface IPacket<T> {
 	
 	public void setEntity(Entity entity);
 
-	public Entity getReturn();
+	public Entity getEntity();
 	
 	public void setVsn(String vsn);
 	
