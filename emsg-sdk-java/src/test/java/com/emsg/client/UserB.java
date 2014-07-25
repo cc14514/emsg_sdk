@@ -9,9 +9,9 @@ import com.emsg.client.beans.IPacket;
 public class UserB implements Define{
 	
 	public static void main(String[] args) throws Exception {
-		final EmsgClient<DefPayload> client = new EmsgClient<DefPayload>("222.128.11.38",4222);
+		EmsgClient<DefPayload> client = new EmsgClient<DefPayload>("222.128.11.38",4222);
 		client.setProvider(new DefProvider());
-		client.setHeartBeat(30000);
+		client.setHeartBeat(50000);
     	client.setPacketListener(new PacketListener<DefPayload>() {
 			@Override
 			public void processPacket(IPacket<DefPayload> packet) {
@@ -19,6 +19,7 @@ public class UserB implements Define{
 			}
 		});
     	client.auth("0000@test.com","123123");
+		
 		Thread.sleep(Integer.MAX_VALUE);
 	}
 	
