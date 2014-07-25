@@ -47,7 +47,7 @@ public class BlackList {
 		json.addProperty("sn", UUID.randomUUID().toString());
 		json.addProperty("service", service);
 		json.addProperty("method", method);
-		json.add("params", new Gson().toJsonTree(args, args.getClass()));
+		json.add("params", new Gson().toJsonTree(args));
 		return json.toString();
 	}
 	
@@ -114,14 +114,9 @@ public class BlackList {
 		if(!JsonUtil.getAsBoolean(json, "success")){
 			throw new Exception(JsonUtil.getAsString(json, "entity"));
 		}else{
-			List<Map<String,String>> result = null;
-			JsonUtil.getAsJsonArray(json, "entity");
-			JsonArray arr = JsonUtil.getAsJsonArray(json, "entity");
-			if(arr!=null&&arr.size()>0) {
-				Type type = new TypeToken<List<Map<String, String>>>(){}.getType();
-				result = new Gson().fromJson(arr, type);
-			}
-			return result;
+			JsonArray jsonArray = JsonUtil.getAsJsonArray(json, "entity");
+			Type type = new TypeToken<List<Map<String, String>>>() {}.getType();
+			return new Gson().fromJson(jsonArray, type);
 		}
 	}
 	
