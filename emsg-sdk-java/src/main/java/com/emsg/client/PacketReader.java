@@ -4,9 +4,10 @@ import java.util.Date;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import net.sf.json.JSONObject;
-
 import com.emsg.client.beans.IPacket;
+import com.emsg.client.util.JsonUtil;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 public class PacketReader<T> implements Define{
 	
@@ -53,17 +54,17 @@ public class PacketReader<T> implements Define{
 						if(KILL.equals(packet)){
 							return ;
 						}
-						JSONObject jp = JSONObject.fromObject(packet);
-						JSONObject envelope = jp.getJSONObject("envelope");
-						if(envelope.has("ack")&&envelope.getInt("ack")==1){
-							JSONObject ack = new JSONObject();
-							JSONObject ack_envelope = new JSONObject();
-							String id = envelope.getString("id");
-							ack_envelope.put("id", id);
-							ack_envelope.put("from", client.getJid());
-							ack_envelope.put("to", "server_ack");
-							ack_envelope.put("type", MSG_TYPE_STATE);
-							ack.put("envelope", ack_envelope);
+						JsonObject jp = new JsonParser().parse(packet).getAsJsonObject();
+						JsonObject envelope = jp.get("envelope").getAsJsonObject();
+						if(envelope.has("ack") && JsonUtil.getAsInt(envelope, "ack", 0)==1){
+							JsonObject ack = new JsonObject();
+							JsonObject ack_envelope = new JsonObject();
+							String id = JsonUtil.getAsString(envelope, "id");
+							ack_envelope.addProperty("id", id);
+							ack_envelope.addProperty("from", client.getJid());
+							ack_envelope.addProperty("to", "server_ack");
+							ack_envelope.addProperty("type", MSG_TYPE_STATE);
+							ack.add("envelope", ack_envelope);
 							client.send(ack.toString());
 						}
 
@@ -73,7 +74,7 @@ public class PacketReader<T> implements Define{
 //						}
 						
 						// 确认信息暂不处理
-						if(envelope.has("from")&&envelope.getString("from").equals("server_ack")){
+						if(envelope.has("from")&&JsonUtil.getAsString(envelope, "from").equals("server_ack")){
 							continue;
 						}
 												

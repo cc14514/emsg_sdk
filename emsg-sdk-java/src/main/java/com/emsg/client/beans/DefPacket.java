@@ -100,7 +100,7 @@ public class DefPacket implements IPacket<DefPayload>{
 	}
 
 	@Override
-	public Entity getReturn() {
+	public Entity getEntity() {
 		return entity;
 	}
 	

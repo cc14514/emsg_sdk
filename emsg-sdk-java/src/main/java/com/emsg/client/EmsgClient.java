@@ -13,11 +13,10 @@ import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import net.sf.json.JSONObject;
-
 import com.emsg.client.beans.DefProvider;
 import com.emsg.client.beans.IPacket;
 import com.emsg.client.beans.IProvider;
+import com.google.gson.JsonObject;
 
 public class EmsgClient<T> implements Define {
 	
@@ -90,15 +89,15 @@ public class EmsgClient<T> implements Define {
     
     private void openSession() throws InterruptedException{
     	//{"envelope":{"id":"1234567890","type":0,"inner_token":"abc123"}}
-		JSONObject j = new JSONObject();
-		JSONObject envelope = new JSONObject();
-		envelope.put("id", UUID.randomUUID().toString());
-		envelope.put("type", MSG_TYPE_OPEN_SESSION);
+		JsonObject j = new JsonObject();
+		JsonObject envelope = new JsonObject();
+		envelope.addProperty("id", UUID.randomUUID().toString());
+		envelope.addProperty("type", MSG_TYPE_OPEN_SESSION);
 //		envelope.put("inner_token", this.inner_token);
-		envelope.put("jid", this.jid);
-		envelope.put("pwd", this.pwd);
+		envelope.addProperty("jid", this.jid);
+		envelope.addProperty("pwd", this.pwd);
 		
-		j.put("envelope", envelope);
+		j.add("envelope", envelope);
 		String open_session_packet = j.toString();
 		logger.info("open_session ::> "+open_session_packet);
 		packetWriter.write(open_session_packet);
@@ -351,5 +350,14 @@ public class EmsgClient<T> implements Define {
 	public void setProvider(IProvider<T> provider) {
 		this.provider = provider;
 	}
-
+	
+	/**
+	 * true 服务器已断开
+	 * false 服务器已链接
+	 * @return
+	 */
+	public boolean isClose(){
+		return isClose;
+	}
+	
 }
