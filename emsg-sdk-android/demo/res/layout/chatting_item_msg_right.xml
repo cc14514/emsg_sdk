@@ -38,20 +38,42 @@
                android:layout_alignParentTop="true" 
 	           android:background="@drawable/shuaige"/>
  				
- 				<TextView 
-	            android:id="@+id/tv_chatcontent" 
-	            android:layout_toLeftOf="@id/iv_userhead"
-	            android:layout_marginRight="10dp"
-	            android:layout_width="wrap_content"
-	            android:layout_height="wrap_content"
-	            android:background="@drawable/chatto_bg" 
-	            android:textSize="15sp"
-	            android:textColor="#ff000000"
-	            android:gravity="left|center"
-	            android:minHeight="50dp" 
-	            android:lineSpacingExtra="2dp"
-	            android:clickable="true"
-	            android:focusable="true"/> 
+	           <LinearLayout
+				android:id="@+id/tv_chatcontent"
+				android:layout_toLeftOf="@id/iv_userhead"
+                android:background="@drawable/chatto_bg" 
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:gravity="center" >
+	 				<ImageView 
+		            android:id="@+id/tv_chat_image" 
+		            android:layout_marginRight="10dp"
+		            android:layout_width="wrap_content"
+		            android:layout_height="wrap_content"
+		            android:textSize="15sp"
+		            android:textColor="#ff000000"
+		            android:gravity="left|center"
+		            android:minHeight="50dp" 
+		            android:lineSpacingExtra="2dp"
+	                android:visibility="gone"
+		            android:clickable="true"
+		            android:focusable="true"/> 
+		            
+	 				<TextView 
+                    android:id="@+id/tv_chat_text" 
+                    android:layout_marginRight="10dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="15sp"
+                    android:textColor="#ff000000"
+                    android:gravity="left|center"
+                    android:minHeight="50dp" 
+                    android:lineSpacingExtra="2dp"
+                    android:visibility="gone"
+                    android:clickable="true"
+                    android:focusable="true"/> 
+                    
+	            </LinearLayout>
 	            
 	            <TextView 
 	            android:id="@+id/tv_time" 
