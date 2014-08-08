@@ -285,7 +285,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	}
 
 	private String getDate() {
-		return DateFormat.format("yyyy-MM-dd HH:mm", new Date()).toString();
+		return DateFormat.format("yyyy-MM-dd kk:mm", new Date()).toString();
 	}
 
 	//按下语音录制按钮时
@@ -530,6 +530,14 @@ public class MainActivity extends Activity implements OnClickListener {
 						entity.setDate(getDate());
 						entity.setName(name);
 						entity.setMsgType(true);
+						
+						Map<String, String> attrs = packet.getPayload().getAttrs();
+						if (attrs != null) {
+							String type = attrs.get("Content-type");
+							entity.setType(type);
+						} else {
+							entity.setType("text");
+						}
 						entity.setText(text);
 		        		mDataArrays.add(entity);
 						handler.post(new  Runnable() {  
@@ -560,7 +568,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		String uptoken = TokenGenerator.uploadToken("lanzise");
 		// uptoken = "eau6doiUgYfcnZiqzWl_xs6amhn5VZ5jC4IPpDwd:ByG2ktqdiFTBA4L2bCx2cJESUbM=:eyJzY29wZSI6Imxhbnppc2UiLCJkZWFkbGluZSI6MTQwNjcwOTA0OH0=";
 		Log.e("", uptoken);
-		final String key = UUID.randomUUID().toString() + "/" + file.getName(); // 自动生成key
+		final String key = UUID.randomUUID().toString() + "_" + file.getName(); // 自动生成key
 		PutExtra extra = new PutExtra();
 		extra.params = new HashMap<String, String>();
 		IO.putFile(uptoken, key, file, extra, new JSONObjectRet() {
@@ -583,6 +591,7 @@ public class MainActivity extends Activity implements OnClickListener {
 				entity.setDate(getDate());
 				entity.setName("高富帅");
 				entity.setMsgType(false);
+				entity.setType("audio");
 				entity.setTime(length+"\"");
 				entity.setText(voiceName);
 				mDataArrays.add(entity);
@@ -603,7 +612,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		// uptoken = "eau6doiUgYfcnZiqzWl_xs6amhn5VZ5jC4IPpDwd:ByG2ktqdiFTBA4L2bCx2cJESUbM=:eyJzY29wZSI6Imxhbnppc2UiLCJkZWFkbGluZSI6MTQwNjcwOTA0OH0=";
 		Log.e("", uptoken);
 		final File file = FileUri.getFile(this, imageUri);
-		final String key = UUID.randomUUID().toString() + "/" + file.getName(); // 自动生成key
+		final String key = UUID.randomUUID().toString() + "_" + file.getName(); // 自动生成key
 		PutExtra extra = new PutExtra();
 		extra.params = new HashMap<String, String>();
 		IO.putFile(uptoken, key, file, extra, new JSONObjectRet() {
@@ -633,8 +642,8 @@ public class MainActivity extends Activity implements OnClickListener {
 		entity.setDate(getDate());
 		entity.setName("高富帅");
 		entity.setMsgType(false);
-		entity.setType("img");
-		entity.setText(file.getName());
+		entity.setType("image");
+		entity.setText(file.getAbsolutePath());
 		mDataArrays.add(entity);
 		mAdapter.notifyDataSetChanged();
 		mListView.setSelection(mListView.getCount() - 1);

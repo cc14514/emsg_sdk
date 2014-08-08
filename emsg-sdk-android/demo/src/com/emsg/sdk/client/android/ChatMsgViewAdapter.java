@@ -1,21 +1,30 @@
 package com.emsg.sdk.client.android;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.List;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+
+import com.emsg.sdk.client.utils.ThumbExtractor;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
+import android.os.AsyncTask;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
-
-import com.emsg.sdk.client.utils.ThumbExtractor;
 
 public class ChatMsgViewAdapter extends BaseAdapter {
 
@@ -69,16 +78,16 @@ public class ChatMsgViewAdapter extends BaseAdapter {
 	public View getView(int position, View convertView, ViewGroup parent) {
 
 		final ChatMsgEntity entity = coll.get(position);
-		boolean isComMsg = entity.getMsgType();
+		final boolean isComMsg = entity.getMsgType();
 
 		ViewHolder viewHolder = null;
 		if (convertView == null) {
 			if (isComMsg) {
 				convertView = mInflater.inflate(
-						R.layout.chatting_item_msg_text_left, null);
+						R.layout.chatting_item_msg_left, null);
 			} else {
 				convertView = mInflater.inflate(
-						R.layout.chatting_item_msg_text_right, null);
+						R.layout.chatting_item_msg_right, null);
 			}
 
 			viewHolder = new ViewHolder();
@@ -86,8 +95,10 @@ public class ChatMsgViewAdapter extends BaseAdapter {
 					.findViewById(R.id.tv_sendtime);
 			viewHolder.tvUserName = (TextView) convertView
 					.findViewById(R.id.tv_username);
-			viewHolder.tvContent = (TextView) convertView
-					.findViewById(R.id.tv_chatcontent);
+			viewHolder.tvText = (TextView) convertView
+					.findViewById(R.id.tv_chat_text);
+			viewHolder.tvImage = (ImageView) convertView
+					.findViewById(R.id.tv_chat_image);
 			viewHolder.tvTime = (TextView) convertView
 					.findViewById(R.id.tv_time);
 			viewHolder.isComMsg = isComMsg;
@@ -99,30 +110,73 @@ public class ChatMsgViewAdapter extends BaseAdapter {
 
 		viewHolder.tvSendTime.setText(entity.getDate());
 		
-		if (entity.getText().contains(".amr")) {
-			viewHolder.tvContent.setText("");
-			viewHolder.tvContent.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.chatto_voice_playing, 0);
+		if (entity.getType() != null && entity.getType().equals("audio")) {
+			new File(android.os.Environment.getExternalStorageDirectory() + "/emsg/receive/audio/").mkdirs();
+			new File(android.os.Environment.getExternalStorageDirectory() + "/emsg/send/audio/").mkdirs();
+			viewHolder.tvText.setText("");
+			viewHolder.tvText.setVisibility(View.VISIBLE);
+			viewHolder.tvText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.chatto_voice_playing, 0);
 			viewHolder.tvTime.setText(entity.getTime());
-		} else if (entity.getType() != null && entity.getType().equals("img")) {
-			viewHolder.tvContent.setText(entity.getText());			
-			Bitmap bMap = BitmapFactory.decodeFile(entity.getText());
-			Bitmap thumb = ThumbExtractor.extractMiniThumb(bMap, 200, 200);
-			BitmapDrawable drawable = new BitmapDrawable(thumb);
-			viewHolder.tvContent.setCompoundDrawablesWithIntrinsicBounds(null, null, drawable, null);
-			viewHolder.tvTime.setText("");
-		} else {
-			viewHolder.tvContent.setText(entity.getText());			
-			viewHolder.tvContent.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
-			viewHolder.tvTime.setText("");
-		}
-		viewHolder.tvContent.setOnClickListener(new OnClickListener() {
 			
-			public void onClick(View v) {
-				if (entity.getText().contains(".amr")) {
-					playMusic(android.os.Environment.getExternalStorageDirectory()+"/"+entity.getText()) ;
+			if (isComMsg) {
+				String key = entity.getText();
+				String filename = android.os.Environment.getExternalStorageDirectory() + "/emsg/receive/audio/" + key;
+				if (!new File(filename).exists()) {
+					new AudioTask(filename).execute(key);
 				}
 			}
-		});
+			viewHolder.tvText.setOnClickListener(new OnClickListener() {
+				
+				public void onClick(View v) {
+					if (isComMsg) {
+						playMusic(android.os.Environment.getExternalStorageDirectory() + "/emsg/receive/audio/" + entity.getText());
+					} else {
+						playMusic(android.os.Environment.getExternalStorageDirectory()+"/"+entity.getText()) ;
+					}
+				}
+			});
+		} else if (entity.getType() != null && entity.getType().equals("image")) {
+			viewHolder.tvText.setVisibility(View.GONE);
+			viewHolder.tvImage.setVisibility(View.VISIBLE);
+			viewHolder.tvTime.setText("");
+			
+			new File(android.os.Environment.getExternalStorageDirectory() + "/emsg/receive/image/thumb/").mkdirs();
+			new File(android.os.Environment.getExternalStorageDirectory() + "/emsg/receive/image/original/").mkdirs();
+			new File(android.os.Environment.getExternalStorageDirectory() + "/emsg/send/image/thumb/").mkdirs();
+			new File(android.os.Environment.getExternalStorageDirectory() + "/emsg/send/image/original/").mkdirs();
+			
+			if (isComMsg) {
+				String key = entity.getText();
+				String filename = android.os.Environment.getExternalStorageDirectory() + "/emsg/receive/image/thumb/" + key;
+				if (new File(filename).exists()) {
+					Bitmap bMap = BitmapFactory.decodeFile(filename);
+					viewHolder.tvImage.setImageBitmap(bMap);
+				} else {
+					viewHolder.tvImage.setImageResource(R.drawable.loading);
+					String options = "imageView2/2/w/200/h/200";
+					new ImageTask(viewHolder, filename).execute(filename, key, options);
+				}
+			} else {
+				String filename = entity.getText();
+				Bitmap bMap = BitmapFactory.decodeFile(filename);
+				viewHolder.tvImage.setImageBitmap(ThumbExtractor.extractMiniThumb(bMap, 200, 200));
+			}
+			
+			viewHolder.tvImage.setOnClickListener(new OnClickListener() {
+				public void onClick(View v) {
+					if (isComMsg) {
+						
+					}
+				}
+			});
+		} else {
+			viewHolder.tvText.setText(entity.getText());			
+			viewHolder.tvText.setVisibility(View.VISIBLE);
+			viewHolder.tvImage.setVisibility(View.GONE);
+			viewHolder.tvText.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
+			viewHolder.tvTime.setText("");
+		}
+
 		viewHolder.tvUserName.setText(entity.getName());
 		
 		return convertView;
@@ -131,7 +185,9 @@ public class ChatMsgViewAdapter extends BaseAdapter {
 	static class ViewHolder {
 		public TextView tvSendTime;
 		public TextView tvUserName;
-		public TextView tvContent;
+		public TextView tvText;
+		public ImageView tvImage;
+		
 		public TextView tvTime;
 		public boolean isComMsg = true;
 	}
@@ -164,5 +220,87 @@ public class ChatMsgViewAdapter extends BaseAdapter {
 	private void stop() {
 
 	}
+	
+class ImageTask extends AsyncTask<String, Void, Boolean>{
+	ViewHolder viewHolder;
+	String filename;
+	public ImageTask(ViewHolder viewHolder, String filename) {
+		this.viewHolder = viewHolder;
+		this.filename = filename;
+	}
+		
+		@Override
+		protected Boolean doInBackground(String... params) {
+			try{
+				String url = "http://lanzise.qiniudn.com/";
+				url += params[1] + "?" + params[2];
+				
+				DefaultHttpClient client = new DefaultHttpClient();
+				HttpGet get = new HttpGet(url);
+				HttpResponse response = client.execute(get);
 
+				InputStream is = response.getEntity().getContent();
+				
+				FileOutputStream fos = new FileOutputStream(filename);
+				int ch = 0;
+				while ((ch = is.read()) != -1) {
+					fos.write(ch);
+				}
+				fos.close();
+
+				return true;
+			}catch(Exception ex){
+				Log.e(TAG, "发送异常." + ex.getMessage(), ex);
+				return false;
+			}
+		}
+		
+		@Override
+		protected void onPostExecute(Boolean result) {
+			super.onPostExecute(result);
+			
+			if (result) {
+				Bitmap bMap = BitmapFactory.decodeFile(filename);
+				viewHolder.tvImage.setImageBitmap(bMap);
+			}
+		}
+	}
+
+class AudioTask extends AsyncTask<String, Void, Boolean>{
+	String filename;
+	public AudioTask(String filename) {
+		this.filename = filename;
+	}
+		
+		@Override
+		protected Boolean doInBackground(String... params) {
+			try{
+				String url = "http://lanzise.qiniudn.com/";
+				url += params[0];
+				
+				DefaultHttpClient client = new DefaultHttpClient();
+				HttpGet get = new HttpGet(url);
+				HttpResponse response = client.execute(get);
+
+				InputStream is = response.getEntity().getContent();
+				
+				FileOutputStream fos = new FileOutputStream(filename);
+				int ch = 0;
+				while ((ch = is.read()) != -1) {
+					fos.write(ch);
+				}
+				fos.close();
+
+				return true;
+			}catch(Exception ex){
+				Log.e(TAG, "发送异常." + ex.getMessage(), ex);
+				return false;
+			}
+		}
+		
+		@Override
+		protected void onPostExecute(Boolean result) {
+			super.onPostExecute(result);
+		}
+	}
 }
