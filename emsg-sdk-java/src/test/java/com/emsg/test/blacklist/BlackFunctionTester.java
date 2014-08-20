@@ -76,6 +76,18 @@ public class BlackFunctionTester {
 					counter++;
 				}
 			}
+
+			@Override
+			public void textPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mediaPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
 		});
     	userAClient.auth(userA, Constants.from_password);
     	
@@ -90,6 +102,18 @@ public class BlackFunctionTester {
 					// 用户B不能收到用户A发的消息
 					Assert.fail();
 				}
+			}
+
+			@Override
+			public void textPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mediaPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
 			}
 		});
     	userBClient.auth(userB, Constants.from_password);

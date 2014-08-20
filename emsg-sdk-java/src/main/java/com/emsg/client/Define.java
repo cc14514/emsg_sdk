@@ -26,12 +26,17 @@ public interface Define {
 //	 ~                              | 20 %% 1    普通聊天，文本                                                                                                                   
 //	 ~                              | 21 %% 2    群聊，文本                                                                                                                       
 //	 ~                              | 22 %% 3    状态同步                                                                                                                         
-//	 ~                              | 23 %% 4    系统消息                                                                                                                         
+//	 ~                              | 23 %% 4    系统消息                                                       
+//	 ~                              | 23 %% 5    语音拨号                                                       
+//	 ~                              | 23 %% 6    视频拨号                                                       
+	
 	public static final int MSG_TYPE_OPEN_SESSION = 0;
 	public static final int MSG_TYPE_CHAT = 1;
 	public static final int MSG_TYPE_GROUP_CHAT = 2;
 	public static final int MSG_TYPE_STATE = 3;
 	public static final int MSG_TYPE_SYSTEM = 4;
+	public static final int MSG_TYPE_P2P_SOUND = 5;
+	public static final int MSG_TYPE_P2P_VIDEO = 6;
 	
 	public static final int ACK_DISABLE = 0;
 	public static final int ACK_ENABLE = 1;

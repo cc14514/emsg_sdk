@@ -22,9 +22,24 @@ package com.emsg.client;
 
 import com.emsg.client.beans.IPacket;
 
-
 public interface PacketListener<T> {
+	
+	/**
+	 * 全部请求
+	 * @param packet
+	 */
+	public void processPacket(IPacket<T> packet);
 
-    public void processPacket(IPacket<T> packet);
-    
+	/**
+	 * 文本信息交换
+	 * @param packet
+	 */
+	public void textPacket(IPacket<T> packet);
+
+	/**
+	 * 类型 type=5 和 type=6 的音频视频拨号请求
+	 * @param packet
+	 */
+	public void mediaPacket(IPacket<T> packet);
+
 }

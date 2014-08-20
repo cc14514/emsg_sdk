@@ -81,7 +81,16 @@ public class PacketReader<T> implements Define{
 						if(client.listener!=null){
 							System.out.println("reader :::> "+packet);
 							IPacket<T> p = client.getProvider().decode(packet);
+							//所有消息都会扔到这个回调方法
 							client.listener.processPacket(p);
+							int type = p.getEnvelope().getType();
+							if(MSG_TYPE_P2P_SOUND==type || MSG_TYPE_P2P_VIDEO==type){
+								//媒体类型消息，包括语音和视频的拨号调度响应与事件
+								client.listener.mediaPacket(p);
+							}else{
+								//文本类型的消息，包括文字、录音、图片、附件
+								client.listener.textPacket(p);
+							}
 						}
 	    			}
     			} catch (InterruptedException e) {

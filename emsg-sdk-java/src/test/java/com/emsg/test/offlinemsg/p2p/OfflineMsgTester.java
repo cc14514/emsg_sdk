@@ -53,6 +53,18 @@ public class OfflineMsgTester {
 			public void processPacket(IPacket<DefPayload> packet) {
 				System.out.println(Constants.from_account + " packet__recv ===> "+packet);
 			}
+
+			@Override
+			public void textPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mediaPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
 		});
     	sender.auth(Constants.from_account, Constants.from_password);
 
@@ -80,6 +92,18 @@ public class OfflineMsgTester {
 					counter++;
 				}
 			}
+
+			@Override
+			public void textPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mediaPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
 		});
     	receiver.auth(Constants.to_account, Constants.to_password);
     	
@@ -99,6 +123,18 @@ public class OfflineMsgTester {
 			@Override
 			public void processPacket(IPacket<DefPayload> packet) {
 				System.out.println(Constants.from_account + " packet__recv ===> "+packet);
+			}
+
+			@Override
+			public void textPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mediaPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
 			}
 		});
     	sender.auth(Constants.from_account, Constants.from_password);
@@ -125,6 +161,18 @@ public class OfflineMsgTester {
 					// 使用计数器计算离线消息个数
 					counter++;
 				}
+			}
+
+			@Override
+			public void textPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mediaPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
 			}
 		});
     	receiver.auth(Constants.to_account, Constants.to_password);
