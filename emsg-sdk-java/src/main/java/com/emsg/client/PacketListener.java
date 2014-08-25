@@ -31,10 +31,22 @@ public interface PacketListener<T> {
 	public void processPacket(IPacket<T> packet);
 
 	/**
-	 * 文本信息交换
+	 * 打开session 的包
 	 * @param packet
 	 */
-	public void textPacket(IPacket<T> packet);
+	public void sessionPacket(IPacket<T> packet);
+
+	/**
+	 * 序列化前的包
+	 * @param packet
+	 */
+	public void textPacket(String packet);
+
+	/**
+	 * 序列化后的包
+	 * @param packet
+	 */
+	public void objectPacket(IPacket<T> packet);
 
 	/**
 	 * 类型 type=5 和 type=6 的音频视频拨号请求

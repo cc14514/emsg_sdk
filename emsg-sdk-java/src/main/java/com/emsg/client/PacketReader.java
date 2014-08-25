@@ -72,11 +72,10 @@ public class PacketReader<T> implements Define{
 //						if(envelope.has("type")&&envelope.getInt("type")==0){
 //							continue;
 //						}
-						
 						// 确认信息暂不处理
-						if(envelope.has("from")&&JsonUtil.getAsString(envelope, "from").equals("server_ack")){
-							continue;
-						}
+//						if(envelope.has("from")&&JsonUtil.getAsString(envelope, "from").equals("server_ack")){
+//							continue;
+//						}
 												
 						if(client.listener!=null){
 							System.out.println("reader :::> "+packet);
@@ -87,9 +86,15 @@ public class PacketReader<T> implements Define{
 							if(MSG_TYPE_P2P_SOUND==type || MSG_TYPE_P2P_VIDEO==type){
 								//媒体类型消息，包括语音和视频的拨号调度响应与事件
 								client.listener.mediaPacket(p);
+							}if(MSG_TYPE_OPEN_SESSION==type){
+								//打开session的包
+								client.listener.sessionPacket(p);
 							}else{
+								//序列化以前的包
 								//文本类型的消息，包括文字、录音、图片、附件
-								client.listener.textPacket(p);
+								client.listener.textPacket(packet);
+								//序列化以后的包
+								client.listener.objectPacket(p);
 							}
 						}
 	    			}

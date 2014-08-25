@@ -62,13 +62,25 @@ public class OfflineGroupMsgTester {
 			}
 
 			@Override
-			public void textPacket(IPacket<DefPayload> packet) {
+			public void mediaPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub
 				
 			}
 
 			@Override
-			public void mediaPacket(IPacket<DefPayload> packet) {
+			public void sessionPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void textPacket(String packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void objectPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub
 				
 			}
@@ -112,13 +124,25 @@ public class OfflineGroupMsgTester {
 			}
 
 			@Override
-			public void textPacket(IPacket<DefPayload> packet) {
+			public void mediaPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub
 				
 			}
 
 			@Override
-			public void mediaPacket(IPacket<DefPayload> packet) {
+			public void sessionPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void textPacket(String packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void objectPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub
 				
 			}
@@ -144,13 +168,25 @@ public class OfflineGroupMsgTester {
 			}
 
 			@Override
-			public void textPacket(IPacket<DefPayload> packet) {
+			public void mediaPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub
 				
 			}
 
 			@Override
-			public void mediaPacket(IPacket<DefPayload> packet) {
+			public void sessionPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void textPacket(String packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void objectPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub
 				
 			}
@@ -196,13 +232,25 @@ public class OfflineGroupMsgTester {
 			}
 
 			@Override
-			public void textPacket(IPacket<DefPayload> packet) {
+			public void mediaPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub
 				
 			}
 
 			@Override
-			public void mediaPacket(IPacket<DefPayload> packet) {
+			public void sessionPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void textPacket(String packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void objectPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub
 				
 			}
