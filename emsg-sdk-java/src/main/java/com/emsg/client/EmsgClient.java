@@ -310,6 +310,7 @@ public class EmsgClient<T> implements Define {
 	public void shutdown(){
 		try {
 			isClose = true;
+			auth = false;
 			if (packetReader != null) {
 				packetReader.kill();
 				packetReader = null;
