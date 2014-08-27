@@ -44,7 +44,7 @@ public class EmsgClient<T> implements Define {
     private IProvider<T> provider = null;
     
 	private boolean auth = false;
-    private boolean isClose = false;
+    private boolean isClose = true;
     private String reconnectSN = null;
     
 //    public EmsgClient(String auth_service){
