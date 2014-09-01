@@ -1,5 +1,6 @@
 package com.emsg.test.blacklist;
 
+import java.util.List;
 import java.util.UUID;
 
 import junit.framework.Assert;
@@ -90,13 +91,7 @@ public class BlackFunctionTester {
 			}
 
 			@Override
-			public void textPacket(String packet) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void objectPacket(IPacket<DefPayload> packet) {
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
 				// TODO Auto-generated method stub
 				
 			}
@@ -129,16 +124,11 @@ public class BlackFunctionTester {
 			}
 
 			@Override
-			public void textPacket(String packet) {
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
 				// TODO Auto-generated method stub
 				
 			}
 
-			@Override
-			public void objectPacket(IPacket<DefPayload> packet) {
-				// TODO Auto-generated method stub
-				
-			}
 		});
     	userBClient.auth(userB, Constants.from_password);
     	

@@ -7,7 +7,7 @@ import com.emsg.client.beans.DefPayload;
 import com.emsg.client.beans.DefProvider;
 import com.emsg.client.beans.IPacket;
 
-public class UserB implements Define {
+public class UserA implements Define {
 
 	public static void main(String[] args) throws Exception {
 		EmsgClient<DefPayload> client = new EmsgClient<DefPayload>("192.168.2.11", 4222);
@@ -31,8 +31,8 @@ public class UserB implements Define {
 			}
 			
 		});
-		client.auth("liangchuan@test.com", "123123");
-		for(int i=0;i<0;i++){
+		client.auth("usera@test.com", "123123");
+		for(int i=0;i<4;i++){
 			client.send(new DefPacket("liangchuan@test.com","new___hello___world",Define.MSG_TYPE_CHAT));
 		}
 		Thread.sleep(Integer.MAX_VALUE);

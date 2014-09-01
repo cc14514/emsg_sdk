@@ -60,7 +60,6 @@ public class EmsgClient<T> implements Define {
     public void auth(String jid,String pwd) throws Exception {
     	this.jid = jid;
     	this.pwd = pwd;
-		this.auth = true;
 		initConnection();
 		//XXX 启动重连线程
 		Thread reconnect = new Thread(new Runnable(){
@@ -247,15 +246,16 @@ public class EmsgClient<T> implements Define {
 								}
 								//将新的片段赋给中间变量
 								part.clear();
-								if(new_part!=null&&new_part.size()>0){
-									for(byte pb : new_part){
-										part.add(pb);
-									}
+							}
+							if(new_part!=null&&new_part.size()>0){
+								for(byte pb : new_part){
+									part.add(pb);
 								}
 							}
 						}
-						throw new Exception("emsg_retome_socket_closed");
+						throw new Exception("emsg_retome_socket_closed__reader="+new String(buff));
 					}catch(Exception e){
+						e.printStackTrace();
 						shutdown();
 						reconnection("listenerRead");
 					}
@@ -360,5 +360,8 @@ public class EmsgClient<T> implements Define {
 	public boolean isClose(){
 		return isClose;
 	}
-	
+
+	public void setAuth(boolean auth) {
+		this.auth = auth;
+	}
 }

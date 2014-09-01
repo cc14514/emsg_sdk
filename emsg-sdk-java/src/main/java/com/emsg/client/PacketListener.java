@@ -20,12 +20,14 @@
 
 package com.emsg.client;
 
+import java.util.List;
+
 import com.emsg.client.beans.IPacket;
 
 public interface PacketListener<T> {
 	
 	/**
-	 * 全部请求
+	 * 聊天的请求
 	 * @param packet
 	 */
 	public void processPacket(IPacket<T> packet);
@@ -37,16 +39,10 @@ public interface PacketListener<T> {
 	public void sessionPacket(IPacket<T> packet);
 
 	/**
-	 * 序列化前的包
-	 * @param packet
+	 * 离线消息
+	 * @param packets
 	 */
-	public void textPacket(String packet);
-
-	/**
-	 * 序列化后的包
-	 * @param packet
-	 */
-	public void objectPacket(IPacket<T> packet);
+	public void offlinePacket(List<IPacket<T>> packets);
 
 	/**
 	 * 类型 type=5 和 type=6 的音频视频拨号请求

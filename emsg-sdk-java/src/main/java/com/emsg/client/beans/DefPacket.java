@@ -5,27 +5,9 @@ import java.util.UUID;
 
 import com.emsg.client.Define;
 
-/*	
-{
-"envelope":{
-  "id":"UUID，要求必须唯一"
-  "from":"发送人JID",
-  "to":"接收人JID",
-  "type":"int型，含义是 消息类型",
-  "ack":"int型，0 或空是不必响应，1 必须响应",
-  "ct":"13位时间戳，由服务器来补充此值",
-  "pwd":"只有当 type=0 时，即 opensession 时，才会使用此属性",
-  "gid":"群ID，只在 type=2 时会用到此属性"
-},
-"vsn":"消息版本(预留属性)",
-"payload":{...},
-"return":{"result":"","reason":""}
-}	
-*/
 /**
  * 一个数据包，包含envelope和一个payload
  * @author liangc
- *
  */
 public class DefPacket implements IPacket<DefPayload>{
 	
@@ -36,6 +18,8 @@ public class DefPacket implements IPacket<DefPayload>{
 	private Entity entity = null;
 	
 	private String vsn = Define.VSN;
+	
+	private Delay<DefPayload> delay = null;
 	
 	public DefPacket() {
 		super();
@@ -115,9 +99,18 @@ public class DefPacket implements IPacket<DefPayload>{
 	}
 
 	@Override
+	public void setDelay(Delay<DefPayload> delay) {
+		this.delay = delay;
+	}
+
+	@Override
+	public Delay<DefPayload> getDelay() {
+		return delay;
+	}
+
+	@Override
 	public String toString() {
-		return "Packet [envelope=" + envelope + ", payload=" + payload
-				+ ", entity=" + entity + ", vsn=" + vsn + "]";
+		return "DefPacket [envelope=" + envelope + ", payload=" + payload + ", entity=" + entity + ", vsn=" + vsn + ", delay=" + delay + "]";
 	}
 	
 }

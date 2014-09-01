@@ -18,4 +18,8 @@ public interface IPacket<T> {
 	
 	public String getVsn();
 	
+	public void setDelay(Delay<T> delay);
+	
+	public Delay<T> getDelay();
+	
 }

@@ -1,5 +1,7 @@
 package com.emsg.test.offlinemsg.customtype;
 
+import java.util.List;
+
 import junit.framework.Assert;
 
 import org.junit.After;
@@ -71,13 +73,7 @@ public class OfflineMsgTester {
 			}
 
 			@Override
-			public void textPacket(String packet) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void objectPacket(IPacket<DefPayload> packet) {
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
 				// TODO Auto-generated method stub
 				
 			}
@@ -122,13 +118,7 @@ public class OfflineMsgTester {
 			}
 
 			@Override
-			public void textPacket(String packet) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void objectPacket(IPacket<DefPayload> packet) {
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
 				// TODO Auto-generated method stub
 				
 			}
@@ -165,13 +155,7 @@ public class OfflineMsgTester {
 			}
 
 			@Override
-			public void textPacket(String packet) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void objectPacket(IPacket<DefPayload> packet) {
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
 				// TODO Auto-generated method stub
 				
 			}
@@ -216,13 +200,7 @@ public class OfflineMsgTester {
 			}
 
 			@Override
-			public void textPacket(String packet) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void objectPacket(IPacket<DefPayload> packet) {
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
 				// TODO Auto-generated method stub
 				
 			}

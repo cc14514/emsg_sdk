@@ -1,5 +1,6 @@
 package com.emsg.test.offlinemsg.group;
 
+import java.util.List;
 import java.util.UUID;
 
 import junit.framework.Assert;
@@ -74,13 +75,7 @@ public class OfflineGroupMsgTester {
 			}
 
 			@Override
-			public void textPacket(String packet) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void objectPacket(IPacket<DefPayload> packet) {
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
 				// TODO Auto-generated method stub
 				
 			}
@@ -136,13 +131,7 @@ public class OfflineGroupMsgTester {
 			}
 
 			@Override
-			public void textPacket(String packet) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void objectPacket(IPacket<DefPayload> packet) {
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
 				// TODO Auto-generated method stub
 				
 			}
@@ -178,15 +167,8 @@ public class OfflineGroupMsgTester {
 				// TODO Auto-generated method stub
 				
 			}
-
 			@Override
-			public void textPacket(String packet) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void objectPacket(IPacket<DefPayload> packet) {
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
 				// TODO Auto-generated method stub
 				
 			}
@@ -244,13 +226,7 @@ public class OfflineGroupMsgTester {
 			}
 
 			@Override
-			public void textPacket(String packet) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void objectPacket(IPacket<DefPayload> packet) {
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
 				// TODO Auto-generated method stub
 				
 			}
