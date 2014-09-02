@@ -86,10 +86,12 @@ public class PacketReader<T> implements Define{
 							}if(MSG_TYPE_OPEN_SESSION==type){
 								//打开session的包中包含了离线消息，在 delay 字段中，将其分析出来并拆分到两个回调方法中
 								List<IPacket<T>> packets = null;
-								if(p.getDelay()!=null && p.getDelay().getTotal()>0){
-									packets = p.getDelay().getPackets();
+								if(p.getDelay()!=null){
+									if(p.getDelay().getTotal()>0){
+										packets = p.getDelay().getPackets();
+										p.setDelay(null);
+									}
 								}
-								p.setDelay(null);
 								//将 delay 从 session 的响应中去除
 								client.listener.sessionPacket(p);
 								if(packets!=null)
