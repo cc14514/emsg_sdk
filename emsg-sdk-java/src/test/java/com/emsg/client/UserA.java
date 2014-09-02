@@ -32,7 +32,7 @@ public class UserA implements Define {
 			
 		});
 		client.auth("usera@test.com", "123123");
-		for(int i=0;i<4;i++){
+		for(int i=0;i<100;i++){
 			client.send(new DefPacket("liangchuan@test.com","new___hello___world",Define.MSG_TYPE_CHAT));
 		}
 		Thread.sleep(Integer.MAX_VALUE);
