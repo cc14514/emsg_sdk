@@ -22,4 +22,8 @@ public interface IPacket<T> {
 	
 	public Delay<T> getDelay();
 	
+	public void setPubsub(Pubsub pubsub);
+	
+	public Pubsub getPubsub();
+	
 }

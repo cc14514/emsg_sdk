@@ -21,6 +21,8 @@ public class DefPacket implements IPacket<DefPayload>{
 	
 	private Delay<DefPayload> delay = null;
 	
+	private Pubsub pubsub = null;
+	
 	public DefPacket() {
 		super();
 	}
@@ -108,9 +110,19 @@ public class DefPacket implements IPacket<DefPayload>{
 		return delay;
 	}
 
+	public Pubsub getPubsub() {
+		return pubsub;
+	}
+
+	public void setPubsub(Pubsub pubsub) {
+		this.pubsub = pubsub;
+	}
+
 	@Override
 	public String toString() {
-		return "DefPacket [envelope=" + envelope + ", payload=" + payload + ", entity=" + entity + ", vsn=" + vsn + ", delay=" + delay + "]";
+		return "DefPacket [envelope=" + envelope + ", payload=" + payload
+				+ ", entity=" + entity + ", vsn=" + vsn + ", delay=" + delay
+				+ ", pubsub=" + pubsub + "]";
 	}
 	
 }

@@ -23,6 +23,7 @@ package com.emsg.client;
 import java.util.List;
 
 import com.emsg.client.beans.IPacket;
+import com.emsg.client.beans.Pubsub;
 
 public interface PacketListener<T> {
 	
@@ -43,6 +44,12 @@ public interface PacketListener<T> {
 	 * @param packets
 	 */
 	public void offlinePacket(List<IPacket<T>> packets);
+	
+	/**
+	 * 订阅消息
+	 * @param packets
+	 */
+	public void pubsubPacket(Pubsub pubsub);
 
 	/**
 	 * 类型 type=5 和 type=6 的音频视频拨号请求

@@ -13,9 +13,22 @@ import com.google.gson.JsonParser;
 
 public class DefProvider implements IProvider<DefPayload> {
 
+	static Gson gson = new Gson();
+
+	public static void main(String[] args) {
+		DefProvider d = new DefProvider();
+
+		String packet = "{\"envelope\":{\"id\":\"emsg_main@192.168.2.11_1410938798206830\",\"from\":\"server_ack\",\"to\":\"liangc@test.com\",\"type\":7,\"ack\":0},\"pubsub\":{\"items\":[{\"node\":\"hello\",\"title\":\"may i fuck you ?\",\"cb\":\"liangc@test.com\",\"summary\":\"come on girls .\",\"et\":1410938785679,\"id\":null,\"ct\":1410938785679},{\"node\":\"hello\",\"title\":\"may i fuck you ?\",\"cb\":\"liangc@test.com\",\"summary\":\"come on girls .\",\"et\":1410938786582,\"id\":null,\"ct\":1410938786582}]}}";
+		IPacket<DefPayload> p = d.decode(packet);
+		System.out.println(packet);
+		System.out.println(p);
+		System.out.println(d.encode(p));
+		
+	}
+	
 	@Override
 	public String encode(IPacket<DefPayload> packet) {
-		return new Gson().toJson(packet);
+		return gson.toJson(packet);
 	}
 
 	@Override
@@ -24,9 +37,13 @@ public class DefProvider implements IProvider<DefPayload> {
 		JsonElement elPacket = parser.parse(packet);
 		JsonObject jPacket = elPacket.getAsJsonObject();
 		JsonObject jdelay = JsonUtil.getAsJsonObject(jPacket, "delay");
+		JsonObject jpubsub = JsonUtil.getAsJsonObject(jPacket, "pubsub");
+		
 		IPacket<DefPayload> r = decode(elPacket);
 		Delay<DefPayload> delay = delay(jdelay);
+		Pubsub pubsub = pubsub(jpubsub);
 		r.setDelay(delay);
+		r.setPubsub(pubsub);
 		return r;
 	}
 
@@ -41,7 +58,6 @@ public class DefProvider implements IProvider<DefPayload> {
 		}
 		
 		JsonObject jentity = JsonUtil.getAsJsonObject(jPacket, "entity");
-		Gson gson = new Gson();
 		gson.fromJson(jenvelope, Envelope.class);
 		IEnvelope envelope = gson.fromJson(jenvelope, Envelope.class);
 		DefPayload payload = null;
@@ -77,6 +93,22 @@ public class DefProvider implements IProvider<DefPayload> {
 			}
 		}
 		return delay;
+	}
+	
+	private Pubsub pubsub(JsonObject jpubsub){
+		Pubsub pubsub = null;
+		if(jpubsub!=null){
+			pubsub = new Pubsub();
+			ArrayList<Item> items = new ArrayList<Item>();
+			JsonArray jitems = jpubsub.get("items").getAsJsonArray();
+			for(int i=0;i<jitems.size();i++){
+				JsonElement jitem = jitems.get(i);
+				Item item = gson.fromJson(jitem, Item.class);
+				items.add(item);
+			}
+			pubsub.setItems(items);
+		}
+		return pubsub;
 	}
 	
 }

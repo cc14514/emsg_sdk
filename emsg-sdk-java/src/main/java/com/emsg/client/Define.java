@@ -29,6 +29,7 @@ public interface Define {
 //	 ~                              | 23 %% 4    系统消息                                                       
 //	 ~                              | 23 %% 5    语音拨号                                                       
 //	 ~                              | 23 %% 6    视频拨号                                                       
+//	 ~                              | 23 %% 7    发布订阅　事件通知                                                       
 	
 	public static final int MSG_TYPE_OPEN_SESSION = 0;
 	public static final int MSG_TYPE_CHAT = 1;
@@ -37,6 +38,7 @@ public interface Define {
 	public static final int MSG_TYPE_SYSTEM = 4;
 	public static final int MSG_TYPE_P2P_SOUND = 5;
 	public static final int MSG_TYPE_P2P_VIDEO = 6;
+	public static final int MSG_TYPE_PUBSUB = 7;
 	
 	public static final int ACK_DISABLE = 0;
 	public static final int ACK_ENABLE = 1;

@@ -15,6 +15,7 @@ import com.emsg.client.beans.DefPacket;
 import com.emsg.client.beans.DefPayload;
 import com.emsg.client.beans.DefProvider;
 import com.emsg.client.beans.IPacket;
+import com.emsg.client.beans.Pubsub;
 
 /**
  * 
@@ -65,7 +66,10 @@ public class OfflineMsgTester {
 				// TODO Auto-generated method stub
 				
 			}
-
+			@Override
+			public void pubsubPacket(Pubsub pubsub) {
+				System.out.println(pubsub);
+			}
 			@Override
 			public void sessionPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub
@@ -110,7 +114,10 @@ public class OfflineMsgTester {
 				// TODO Auto-generated method stub
 				
 			}
-
+			@Override
+			public void pubsubPacket(Pubsub pubsub) {
+				System.out.println(pubsub);
+			}
 			@Override
 			public void sessionPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub
@@ -147,7 +154,10 @@ public class OfflineMsgTester {
 				// TODO Auto-generated method stub
 				
 			}
-
+			@Override
+			public void pubsubPacket(Pubsub pubsub) {
+				System.out.println(pubsub);
+			}
 			@Override
 			public void sessionPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub
@@ -192,7 +202,10 @@ public class OfflineMsgTester {
 				// TODO Auto-generated method stub
 				
 			}
-
+			@Override
+			public void pubsubPacket(Pubsub pubsub) {
+				System.out.println(pubsub);
+			}
 			@Override
 			public void sessionPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub

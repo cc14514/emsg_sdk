@@ -6,6 +6,7 @@ import com.emsg.client.beans.DefPacket;
 import com.emsg.client.beans.DefPayload;
 import com.emsg.client.beans.DefProvider;
 import com.emsg.client.beans.IPacket;
+import com.emsg.client.beans.Pubsub;
 
 public class UserB implements Define {
 
@@ -28,6 +29,10 @@ public class UserB implements Define {
 				for(IPacket<DefPayload> packet : packets){
 					System.out.println(packets.size()+"__offline__message=="+packet.toString());
 				}
+			}
+			@Override
+			public void pubsubPacket(Pubsub pubsub) {
+				System.out.println(pubsub);
 			}
 			
 		});

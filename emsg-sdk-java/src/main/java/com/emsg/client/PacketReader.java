@@ -97,6 +97,9 @@ public class PacketReader<T> implements Define{
 								if(packets!=null)
 									//将离线消息打包并回调
 									client.listener.offlinePacket(packets);
+							}else if(MSG_TYPE_PUBSUB==type){
+								//订阅信息
+								client.listener.pubsubPacket(p.getPubsub());
 							}else{
 								//文本类型的消息，包括文字、录音、图片、附件
 								//序列化以后的包

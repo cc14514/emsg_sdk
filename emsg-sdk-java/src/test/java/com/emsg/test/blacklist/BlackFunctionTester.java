@@ -16,6 +16,7 @@ import com.emsg.client.beans.DefPacket;
 import com.emsg.client.beans.DefPayload;
 import com.emsg.client.beans.DefProvider;
 import com.emsg.client.beans.IPacket;
+import com.emsg.client.beans.Pubsub;
 import com.emsg.client.service.BlackList;
 
 /**
@@ -77,7 +78,10 @@ public class BlackFunctionTester {
 					counter++;
 				}
 			}
-
+			@Override
+			public void pubsubPacket(Pubsub pubsub) {
+				System.out.println(pubsub);
+			}
 			@Override
 			public void mediaPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub
@@ -110,7 +114,10 @@ public class BlackFunctionTester {
 					Assert.fail();
 				}
 			}
-
+			@Override
+			public void pubsubPacket(Pubsub pubsub) {
+				System.out.println(pubsub);
+			}
 			@Override
 			public void mediaPacket(IPacket<DefPayload> packet) {
 				// TODO Auto-generated method stub
