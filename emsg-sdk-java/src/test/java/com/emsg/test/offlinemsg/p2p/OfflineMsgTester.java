@@ -1,5 +1,7 @@
 package com.emsg.test.offlinemsg.p2p;
 
+import java.util.List;
+
 import junit.framework.Assert;
 
 import org.junit.After;
@@ -13,6 +15,7 @@ import com.emsg.client.beans.DefPacket;
 import com.emsg.client.beans.DefPayload;
 import com.emsg.client.beans.DefProvider;
 import com.emsg.client.beans.IPacket;
+import com.emsg.client.beans.Pubsub;
 
 /**
  * 测试离线消息存储数量（如10条），用户<-->用户场景：
@@ -53,6 +56,27 @@ public class OfflineMsgTester {
 			public void processPacket(IPacket<DefPayload> packet) {
 				System.out.println(Constants.from_account + " packet__recv ===> "+packet);
 			}
+			@Override
+			public void pubsubPacket(Pubsub pubsub) {
+				System.out.println(pubsub);
+			}
+			@Override
+			public void mediaPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void sessionPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
+				// TODO Auto-generated method stub
+				
+			}
 		});
     	sender.auth(Constants.from_account, Constants.from_password);
 
@@ -80,6 +104,26 @@ public class OfflineMsgTester {
 					counter++;
 				}
 			}
+			@Override
+			public void pubsubPacket(Pubsub pubsub) {
+				System.out.println(pubsub);
+			}
+			@Override
+			public void mediaPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void sessionPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+			@Override
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
+				// TODO Auto-generated method stub
+				
+			}
 		});
     	receiver.auth(Constants.to_account, Constants.to_password);
     	
@@ -99,6 +143,27 @@ public class OfflineMsgTester {
 			@Override
 			public void processPacket(IPacket<DefPayload> packet) {
 				System.out.println(Constants.from_account + " packet__recv ===> "+packet);
+			}
+
+			@Override
+			public void mediaPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+			@Override
+			public void pubsubPacket(Pubsub pubsub) {
+				System.out.println(pubsub);
+			}
+			@Override
+			public void sessionPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
+				// TODO Auto-generated method stub
+				
 			}
 		});
     	sender.auth(Constants.from_account, Constants.from_password);
@@ -125,6 +190,27 @@ public class OfflineMsgTester {
 					// 使用计数器计算离线消息个数
 					counter++;
 				}
+			}
+			@Override
+			public void pubsubPacket(Pubsub pubsub) {
+				System.out.println(pubsub);
+			}
+			@Override
+			public void mediaPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void sessionPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
+				// TODO Auto-generated method stub
+				
 			}
 		});
     	receiver.auth(Constants.to_account, Constants.to_password);

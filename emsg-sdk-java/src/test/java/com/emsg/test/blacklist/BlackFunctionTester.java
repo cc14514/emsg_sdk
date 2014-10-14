@@ -1,5 +1,6 @@
 package com.emsg.test.blacklist;
 
+import java.util.List;
 import java.util.UUID;
 
 import junit.framework.Assert;
@@ -15,6 +16,7 @@ import com.emsg.client.beans.DefPacket;
 import com.emsg.client.beans.DefPayload;
 import com.emsg.client.beans.DefProvider;
 import com.emsg.client.beans.IPacket;
+import com.emsg.client.beans.Pubsub;
 import com.emsg.client.service.BlackList;
 
 /**
@@ -76,6 +78,27 @@ public class BlackFunctionTester {
 					counter++;
 				}
 			}
+			@Override
+			public void pubsubPacket(Pubsub pubsub) {
+				System.out.println(pubsub);
+			}
+			@Override
+			public void mediaPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void sessionPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
+				// TODO Auto-generated method stub
+				
+			}
 		});
     	userAClient.auth(userA, Constants.from_password);
     	
@@ -91,6 +114,28 @@ public class BlackFunctionTester {
 					Assert.fail();
 				}
 			}
+			@Override
+			public void pubsubPacket(Pubsub pubsub) {
+				System.out.println(pubsub);
+			}
+			@Override
+			public void mediaPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void sessionPacket(IPacket<DefPayload> packet) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void offlinePacket(List<IPacket<DefPayload>> packets) {
+				// TODO Auto-generated method stub
+				
+			}
+
 		});
     	userBClient.auth(userB, Constants.from_password);
     	

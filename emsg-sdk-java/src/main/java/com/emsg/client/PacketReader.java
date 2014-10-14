@@ -1,6 +1,7 @@
 package com.emsg.client;
 
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -56,32 +57,54 @@ public class PacketReader<T> implements Define{
 						}
 						JsonObject jp = new JsonParser().parse(packet).getAsJsonObject();
 						JsonObject envelope = jp.get("envelope").getAsJsonObject();
+						String id = JsonUtil.getAsString(envelope, "id");
 						if(envelope.has("ack") && JsonUtil.getAsInt(envelope, "ack", 0)==1){
-							JsonObject ack = new JsonObject();
-							JsonObject ack_envelope = new JsonObject();
-							String id = JsonUtil.getAsString(envelope, "id");
-							ack_envelope.addProperty("id", id);
-							ack_envelope.addProperty("from", client.getJid());
-							ack_envelope.addProperty("to", "server_ack");
-							ack_envelope.addProperty("type", MSG_TYPE_STATE);
-							ack.add("envelope", ack_envelope);
-							client.send(ack.toString());
+							sendAck(id);
 						}
-
-						// 认证信息暂不处理
-//						if(envelope.has("type")&&envelope.getInt("type")==0){
+						// 认证信息
+						if(envelope.has("type")&&JsonUtil.getAsInt(envelope, "type", 0)==0){
+							JsonObject entity = jp.get("entity").getAsJsonObject();
+							String result = JsonUtil.getAsString(entity, "result");
+							if("ok".equals(result)){
+								client.setAuth(true);
+								sendAck(id);
+							}
+						}
+						// 确认信息暂不处理
+//						if(envelope.has("from")&&JsonUtil.getAsString(envelope, "from").equals("server_ack")){
 //							continue;
 //						}
-						
-						// 确认信息暂不处理
-						if(envelope.has("from")&&JsonUtil.getAsString(envelope, "from").equals("server_ack")){
-							continue;
-						}
 												
 						if(client.listener!=null){
 							System.out.println("reader :::> "+packet);
 							IPacket<T> p = client.getProvider().decode(packet);
-							client.listener.processPacket(p);
+							//所有消息都会扔到这个回调方法
+							int type = p.getEnvelope().getType();
+							if(MSG_TYPE_P2P_SOUND==type || MSG_TYPE_P2P_VIDEO==type){
+								//媒体类型消息，包括语音和视频的拨号调度响应与事件
+								client.listener.mediaPacket(p);
+							}if(MSG_TYPE_OPEN_SESSION==type){
+								//打开session的包中包含了离线消息，在 delay 字段中，将其分析出来并拆分到两个回调方法中
+								List<IPacket<T>> packets = null;
+								if(p.getDelay()!=null){
+									if(p.getDelay().getTotal()>0){
+										packets = p.getDelay().getPackets();
+										p.setDelay(null);
+									}
+								}
+								//将 delay 从 session 的响应中去除
+								client.listener.sessionPacket(p);
+								if(packets!=null)
+									//将离线消息打包并回调
+									client.listener.offlinePacket(packets);
+							}else if(MSG_TYPE_PUBSUB==type){
+								//订阅信息
+								client.listener.pubsubPacket(p.getPubsub());
+							}else{
+								//文本类型的消息，包括文字、录音、图片、附件
+								//序列化以后的包
+								client.listener.processPacket(p);
+							}
 						}
 	    			}
     			} catch (InterruptedException e) {
@@ -93,5 +116,16 @@ public class PacketReader<T> implements Define{
     	readerThread.setName("PacketReader__"+new Date());
     	readerThread.setDaemon(true);
     	readerThread.start();
+    }
+
+    private void sendAck(String id) throws InterruptedException{
+		JsonObject ack = new JsonObject();
+		JsonObject ack_envelope = new JsonObject();
+		ack_envelope.addProperty("id", id);
+		ack_envelope.addProperty("from", client.getJid());
+		ack_envelope.addProperty("to", "server_ack");
+		ack_envelope.addProperty("type", MSG_TYPE_STATE);
+		ack.add("envelope", ack_envelope);
+		client.send(ack.toString());
     }
 }
