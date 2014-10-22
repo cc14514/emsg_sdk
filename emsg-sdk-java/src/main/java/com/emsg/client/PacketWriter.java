@@ -6,8 +6,6 @@ import java.util.concurrent.BlockingQueue;
 public class PacketWriter implements Define{
 
     private final BlockingQueue<String> queue;
-    private final BlockingQueue<String> heart_beat_ack;
-    volatile boolean done;
     
     public void kill() {
     	try {
@@ -26,14 +24,7 @@ public class PacketWriter implements Define{
     }
 
     protected PacketWriter() {
-    	this.heart_beat_ack = new ArrayBlockingQueue<String>(5, true);
-    	heart_beat_ack.poll();
         this.queue = new ArrayBlockingQueue<String>(500, true);
-        init();
-    }
-
-    protected void init() {
-        
     }
 
 }
