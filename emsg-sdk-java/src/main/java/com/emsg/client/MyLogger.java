@@ -11,11 +11,11 @@ public class MyLogger {
 	}
 	
 	public void info(Object o){
-		System.err.println("["+new Date()+"]"+clazz.getName()+" : "+o.toString());
+		//System.err.println("["+new Date()+"]"+clazz.getName()+" : "+o.toString());
 	}
 	
 	public void debug(Object o){
-		System.err.println("["+new Date()+"]"+clazz.getName()+" : "+o.toString());
+		//System.err.println("["+new Date()+"]"+clazz.getName()+" : "+o.toString());
 	}
 	
 }

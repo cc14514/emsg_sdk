@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -233,10 +234,12 @@ public class EmsgClient<T> implements Define {
 							splitByteArray(list,END_TAG,packetList,new_part,part);
 							for(int i=0;i<packetList.size();i++){
 								String packet = packetList.get(i);
-								System.out.println("--> packet = "+packet);
+								//System.err.println(sf.format(new Date())+" --> packet = "+packet);
 								// dispach heart beat and message
 								if(HEART_BEAT.equals(packet)){
 									//心跳单独处理
+									SimpleDateFormat sf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+									System.err.println(sf.format(new Date())+" --> heart = "+packet);
 									heart_beat_ack.poll();
 								}else if(SERVER_KILL.equals(packet)){
 									logger.debug("server_kill="+packet);

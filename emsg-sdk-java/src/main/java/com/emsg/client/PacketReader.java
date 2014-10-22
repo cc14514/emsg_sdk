@@ -76,7 +76,7 @@ public class PacketReader<T> implements Define{
 //						}
 												
 						if(client.listener!=null){
-							System.out.println("reader :::> "+packet);
+//							System.out.println("reader :::> "+packet);
 							IPacket<T> p = client.getProvider().decode(packet);
 							//所有消息都会扔到这个回调方法
 							int type = p.getEnvelope().getType();
