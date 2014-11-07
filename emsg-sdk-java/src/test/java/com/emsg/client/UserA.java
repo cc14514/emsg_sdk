@@ -1,5 +1,6 @@
 package com.emsg.client;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.emsg.client.beans.DefPacket;
@@ -11,45 +12,68 @@ import com.emsg.client.beans.Pubsub;
 public class UserA implements Define {
 //	<<"{\"cb\":\"cc@test.com\",\"node\":\"hello\",\"title\":\"good job!\",\"summary\":\"what's app ?\"}">>
 	public static void main(String[] args) throws Exception {
-//		EmsgClient<DefPayload> client = new EmsgClient<DefPayload>("182.254.210.135", 4222);
-		EmsgClient<DefPayload> client = new EmsgClient<DefPayload>("192.168.2.11", 4222);
-		client.setHeartBeat(55000);
-		client.setProvider(new DefProvider());
-		client.setPacketListener(new PacketListener<DefPayload>() {
-			@Override
-			public void processPacket(IPacket<DefPayload> packet) {
-				//System.out.println("liangc___packet__recv ===> " + packet);
-			}
-			@Override
-			public void mediaPacket(IPacket<DefPayload> packet) {
-			}
-			@Override
-			public void sessionPacket(IPacket<DefPayload> packet) {
-			}
-			@Override
-			public void offlinePacket(List<IPacket<DefPayload>> packets) {
-				for(IPacket<DefPayload> packet : packets){
-					System.out.println(packets.size()+"__offline__message=="+packet.toString());
+		List<EmsgClient<DefPayload>> list = new ArrayList<EmsgClient<DefPayload>>();
+		
+		for (int i=0; i<2000; i++) {
+			EmsgClient<DefPayload> client = new EmsgClient<DefPayload>("192.168.2.11", 5222);
+			list.add(client);
+			client.setHeartBeat(100000-1);
+			client.setProvider(new DefProvider());
+			client.setPacketListener(new PacketListener<DefPayload>() {
+				@Override
+				public void processPacket(IPacket<DefPayload> packet) {
+					System.err.println("liangc___packet__recv ===> " + packet);
+				}
+				@Override
+				public void mediaPacket(IPacket<DefPayload> packet) {
+				}
+				@Override
+				public void sessionPacket(IPacket<DefPayload> packet) {
+				}
+				@Override
+				public void offlinePacket(List<IPacket<DefPayload>> packets) {
+					for(IPacket<DefPayload> packet : packets){
+						System.err.println(packets.size()+"__offline__message=="+packet.toString());
+					}
+				}
+				@Override
+				public void pubsubPacket(Pubsub pubsub) {
+					System.err.println(pubsub);
+				}
+				
+			});
+			client.auth("wangxxxx" + i + "@test.com", "123123");
+		}
+		System.out.println("wait");
+		
+		Thread.sleep(10000);
+		StringBuilder sb = new StringBuilder(256);
+		try {
+			int k = 0;
+			int count = 0;
+		while(true) {
+			for (int i=0; i<list.size(); i++) {
+//				if (i % 6 != k) {
+//					continue;
+//				}
+				for (int j=0; j<1; j++) {
+					
+				sb.setLength(0);
+				sb.append("liangchuan__aaaa");
+				sb.append(System.currentTimeMillis());
+				sb.append("@test.com");
+				list.get(i).send(new DefPacket(sb.toString(),"new___hello___world",Define.MSG_TYPE_CHAT));
+				System.err.println("count : " + count++);
 				}
 			}
-			@Override
-			public void pubsubPacket(Pubsub pubsub) {
-				System.out.println(pubsub);
-			}
+			k++;
+			k = k > 5 ? 0 : k;
 			
-		});
-		
-		client.auth("aaa@test.com", "123123");
-		long s = System.currentTimeMillis();
-		for(int i=0;i<3000000;i++){
-			IPacket p = new DefPacket("you@test.com","kkkkkkkkkkkkkkkkkkkkkkkkkkkk",Define.MSG_TYPE_CHAT);
-			p.getEnvelope().setId(i+"");
-			client.send(p);
+			// Thread.sleep(250);
 		}
-		long e = System.currentTimeMillis();
-		System.out.println("end__time:::> "+(e-s) );
-		Thread.sleep(2000);
-		client.close();
-		System.out.println("closed" );
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
+
 }
