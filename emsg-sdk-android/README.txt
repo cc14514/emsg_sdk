@@ -153,39 +153,20 @@ public class DemoApplication extends Application {
    long ct ;           消息发送时间戳
    String contentType; 消息类型 分为"text","image","audio"
    String contentLength ;语音时长
-   String content;      文本消息的具体内容,图片及语音的地址
+   String content;      文本消息的具体内容,图片及语音的加密路径名称
 
 
 下载图片
 
-
-    使用DownloadTask.download方法
-    /**
-     * @param key       Message 中的 getContent()获取
-     * @param filename  文件名（Environment.getExternalStorageDirectory() + "/emsg/receive/audio/" + key）
-     * @param thumbnail 是否缩略图
-     * @param callback  下载回调函数
-     */
-    void download(String key, final String filename, boolean thumbnail, DownloadTaskCallback callback);
-    new DownloadTask().download(key, filename, true, new DownloadTaskCallback() {
-        /**
-         * 下载成功后调用
-         */
-        public void onSuccess(String filename) {
-            // 下载成功,更新UI
-        }
-                     
-        /**
-         * 下载失败后调用
-         */
-        public void onFailure() {
-            // 下载失败
-        }
-    });
+    Message message = ‘接收到图片信息的Message对象’ ;
+    String content = message.getContent();
+    图片下载路径：http://emsg.qiniudn.com/ + content+ "imageView2/2/w/200/h/200";
 
 
 下载语音
-同下载图片
+    
+ 同下载图片但是语音下载地址如下：
+ http://emsg.qiniudn.com/+ content
 
 
 
