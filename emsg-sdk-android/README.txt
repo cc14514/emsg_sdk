@@ -165,14 +165,15 @@ public class DemoApplication extends Application {
 
 下载语音
     
- 同下载图片但是语音下载地址如下：
- http://emsg.qiniudn.com/+ content
+   同下载图片但是语音下载地址如下：
+   http://emsg.qiniudn.com/+ content
 
 
 
 关闭emsg消息服务引擎
-     注意：若退出应用时不接受消息则需要关闭消息服务否则程序会仍然在后台运行
-     mAppLication.getEmsgClient().close();
+
+    注意：若退出应用时不接受消息则需要关闭消息服务否则程序会仍然在后台运行
+    mAppLication.getEmsgClient().close();
 
 
 
