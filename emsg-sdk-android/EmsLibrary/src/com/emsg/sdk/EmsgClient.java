@@ -1,0 +1,715 @@
+
+package com.emsg.sdk;
+
+import android.annotation.SuppressLint;
+
+
+
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
+import android.text.TextUtils;
+
+import com.emsg.sdk.beans.DefPacket;
+import com.emsg.sdk.beans.DefPayload;
+import com.emsg.sdk.beans.DefProvider;
+import com.emsg.sdk.beans.IEnvelope;
+import com.emsg.sdk.beans.IPacket;
+import com.emsg.sdk.beans.IProvider;
+import com.emsg.sdk.beans.Message;
+import com.emsg.sdk.beans.Pubsub;
+import com.emsg.sdk.client.android.asynctask.UploadTask;
+import com.emsg.sdk.client.android.asynctask.UploadTask.UploadTaskCallback;
+import com.emsg.sdk.util.NetStateUtil;
+import com.google.gson.JsonObject;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+
+public class EmsgClient implements Define {
+
+    private BlockingQueue<String> heart_beat_ack = null;
+
+    static MyLogger logger = new MyLogger(EmsgClient.class);
+
+    private String emsg_host = "182.254.210.135";
+    private int emsg_port = 4222;
+
+    private String jid = null;
+    private String pwd = null;
+    private String appKey = null;
+    private String heart = null;
+    private int heartBeat = 5000;
+
+    private Socket socket = null;
+
+    protected InputStream reader = null;
+    protected OutputStream writer = null;
+
+    public PacketReader<DefPayload> packetReader = null;
+    public PacketWriter packetWriter = null;
+
+    protected PacketListener<DefPayload> listener = null;
+    private IProvider<DefPayload> provider = null;
+
+    private boolean auth = false;
+    private boolean isClose = true;
+    private String reconnectSN = null;
+
+    private volatile Context mAppContext;
+    public static EmsgClient mEmsgClient;
+    private WakeLock wakeLock;
+
+    private HeatBeatManager mHeartBeatManger;
+    private String mAppKey = null;
+    public boolean isLogOut = false;
+
+    public static EmsgClient getInstance() {
+        if (mEmsgClient == null) {
+            mEmsgClient = new EmsgClient();
+        }
+        return mEmsgClient;
+    }
+
+    public void init(Context mAppContext) {
+        this.mAppContext = mAppContext;
+        startBgService();
+    }
+
+    private void startBgService() {
+        try {
+            mAppContext.startService(new Intent(mAppContext, EmsgService.class));
+        } catch (Exception e) {
+        }
+    }
+
+    // hold the lock for the power
+    private void holdPowerManager() {
+        PowerManager mPowerManager = (PowerManager) mAppContext
+                .getSystemService(Context.POWER_SERVICE);
+        WakeLock wakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "DPA");
+        if (!wakeLock.isHeld())
+            wakeLock.acquire();
+    }
+
+    // when quit for the socket release the powerlock
+    private void releasePowerManager() {
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+            wakeLock = null;
+        }
+    }
+
+    public HeatBeatManager getHeartBeatManager() {
+        return mHeartBeatManger;
+    }
+
+    private EmsgClient() {
+        mHeartBeatManger = new HeatBeatManager();
+        System.setProperty("emsg.packet.provider", DefProvider.class.getName());
+        mEmsgClient = this;
+        setProvider(new DefProvider());
+        this.listener = new Receiver();
+        // this.listener = (PacketListener<T>) new Receiver();
+    }
+    EmsgCallBack mAuthEmsgCallBack;
+    public void auth(String jid, String pwd,EmsgCallBack mEmsgCallBack) {
+        if (jid != null && pwd != null) {
+            this.jid =jid;
+            this.pwd = pwd;
+        }
+        if(mEmsgCallBack!=null){
+            this.mAuthEmsgCallBack = mEmsgCallBack;
+        }
+        try {
+            initConnection();
+        } catch (Exception e) {
+            if(mEmsgCallBack!=null){
+                mEmsgCallBack.onError(EmsgConstants.MSG_ERRORCODE_LOGIN, e.getMessage());
+            }
+        }
+    }
+
+    private void setAppKey() throws NameNotFoundException {
+        String mPackageName = mAppContext.getPackageName();
+        ApplicationInfo mAppInfo = mAppContext.getPackageManager()
+                .getApplicationInfo(mPackageName,
+                        PackageManager.GET_META_DATA);
+        this.appKey = mAppInfo.metaData.getString("myMsg");
+    }
+
+    public void setPacketListener(PacketListener<DefPayload> listener) {
+        // this.listener = listener;
+    }
+
+    private void initConnection() throws UnknownHostException, IOException,
+            InterruptedException {
+        holdPowerManager();
+        logger.debug(this.emsg_host + " ; " + this.emsg_port);
+        this.socket = new Socket(this.emsg_host, this.emsg_port);
+        reconnectSN = null;
+        isClose = false;
+        isLogOut = false;
+        initReaderAndWriter();
+        openSession();
+        mHeartBeatManger.schduleNextHeartbeat();
+    }
+
+    private void openSession() throws InterruptedException {
+        // {"envelope":{"id":"1234567890","type":0,"inner_token":"abc123"}}
+        JsonObject j = new JsonObject();
+        JsonObject envelope = new JsonObject();
+        envelope.addProperty("id", UUID.randomUUID().toString());
+        envelope.addProperty("type", MSG_TYPE_OPEN_SESSION);
+        // envelope.put("inner_token", this.inner_token);
+        envelope.addProperty("jid", this.jid);
+        envelope.addProperty("pwd", this.pwd);
+        envelope.addProperty("appkey", this.appKey);
+        j.add("envelope", envelope);
+        String open_session_packet = j.toString();
+        logger.info("open_session ::> " + open_session_packet);
+        packetWriter.write(open_session_packet);
+    }
+
+    public void close() {
+        releasePowerManager();
+        loop_queue.add(KILL);
+        shutdown();
+        stopEmsService();
+    }
+
+    private void reconnection(String reconnectSN) {
+        if (this.reconnectSN == null) {
+            this.reconnectSN = reconnectSN;
+            try {
+                logger.debug("reconnect_do_at_" + reconnectSN);
+                loop_queue.put("do");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            loop();
+        } else {
+            logger.info("======== reconnection_skip ========" + reconnectSN);
+        }
+    }
+
+    private final BlockingQueue<String> loop_queue = new ArrayBlockingQueue<String>(
+            2, true);;
+
+    private void initReaderAndWriter() throws UnsupportedEncodingException,
+            IOException {
+        reader = socket.getInputStream();
+        writer = socket.getOutputStream();
+        // TODO if first new reader
+        packetReader = new PacketReader<DefPayload>(this);
+        packetWriter = new PacketWriter();
+        heart_beat_ack = new ArrayBlockingQueue<String>(2, true);
+        this.heart = UUID.randomUUID().toString();
+        new IOListener(heart);
+    }
+
+    public boolean isAuth() {
+        return auth;
+    }
+
+    class IOListener extends PacketDecoder {
+        Thread readThread = null;
+        Thread writeThread = null;
+        String _heart = null;
+
+        IOListener(String _heart) {
+            listenerRead();
+            listenerWriter();
+            this._heart = _heart;
+        }
+
+        void listenerRead() {
+            readThread = new Thread() {
+                public void run() {
+                    try {
+                        byte[] buff = new byte[1024];
+                        int len = 0;
+                        List<Byte> part = new ArrayList<Byte>();
+                        while ((len = reader.read(buff)) != 0 && len != -1) {// 当远程流断开时，会返�?0
+                            List<Byte> list = parseBinaryList(buff, len);
+                            List<String> packetList = new ArrayList<String>();
+                            List<Byte> new_part = new ArrayList<Byte>();
+                            splitByteArray(list, END_TAG, packetList, new_part,
+                                    part);
+                            for (int i = 0; i < packetList.size(); i++) {
+                                String packet = packetList.get(i);
+                                System.out.println("--> packet = " + packet);
+                                // dispach heart beat and message
+                                if (HEART_BEAT.equals(packet)) {
+                                    // 心跳单独处理
+                                    heart_beat_ack.poll();
+                                } else if (SERVER_KILL.equals(packet)) {
+                                    logger.debug("server_kill=" + packet);
+                                    close();
+                                } else {
+                                    packetReader.recv(packet);
+                                }
+                                // 将新的片段赋给中间变�?
+                                part.clear();
+                            }
+                            if (new_part != null && new_part.size() > 0) {
+                                for (byte pb : new_part) {
+                                    part.add(pb);
+                                }
+                            }
+                        }
+                        throw new Exception(
+                                "emsg_retome_socket_closed__reader="
+                                        + new String(buff));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        shutdown();
+                        reconnection("listenerRead");
+                    }
+                }
+            };
+            readThread.setName("IOListener__read__" + new Date());
+            readThread.setDaemon(true);
+            readThread.start();
+        }
+
+        void listenerWriter() {
+            writeThread = new Thread() {
+                public void run() {
+                    try {
+                        while (true) {
+                            String msg = packetWriter.take();
+                            if (KILL.equals(msg)) {
+                                return;
+                            }
+                            if (!msg.endsWith(END_TAG)) {
+                                msg = msg + END_TAG;
+                            }
+                            logger.debug("IOListener_writer socket_is_close="
+                                    + isClose + " send_message ==> " + msg);
+                            writer.write(msg.getBytes());
+                            writer.flush();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        shutdown();
+                        reconnection("listenerWriter");
+                    }
+                }
+            };
+            writeThread.setName("IOListener__writer__" + new Date());
+            writeThread.setDaemon(true);
+            writeThread.start();
+        }
+    }
+
+    private void send(IPacket<DefPayload> packet) throws InterruptedException {
+        if (packet.getEnvelope().getFrom() == null) {
+            packet.getEnvelope().setFrom(this.jid);
+        }
+        String encode_message = getProvider().encode(packet);
+        packetWriter.write(encode_message);
+    }
+
+    protected void send(String message) throws InterruptedException {
+        packetWriter.write(message);
+    }
+
+    public void shutdown() {
+        // releasePowerManager();
+        try {
+            isClose = true;
+            auth = false;
+            if (packetReader != null) {
+                packetReader.kill();
+                packetReader = null;
+            }
+            if (packetWriter != null) {
+                packetWriter.kill();
+                packetWriter = null;
+            }
+            heart_beat_ack = null;
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
+            logger.info("shutdown...");
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        }
+    }
+
+    public int getHeartBeat() {
+        return heartBeat;
+    }
+
+    public void setHeartBeat(int heartBeat) throws Exception {
+        if (100 * 1000 < heartBeat) {
+            throw new Exception("scope from 1000 to 100000 ");
+        }
+        this.heartBeat = heartBeat;
+    }
+
+    public String getJid() {
+        return jid;
+    }
+
+    public IProvider<DefPayload> getProvider() {
+        return provider;
+    }
+
+    public void setProvider(IProvider<DefPayload> provider) {
+        this.provider = provider;
+    }
+
+    /**
+     * true 服务器已断开 false 服务器已链接
+     * 
+     * @return
+     */
+    public boolean isClose() {
+        return isClose;
+    }
+
+    public void setAuth(boolean auth) {
+        this.auth = auth;
+    }
+
+    void startEmsService() {
+        Intent mIntent = new Intent(mAppContext, EmsgService.class);
+        mAppContext.startService(mIntent);
+    }
+    void stopEmsService(){
+        this.isClose = true;
+        Intent mIntent = new Intent(mAppContext, EmsgService.class);
+        mAppContext.stopService(mIntent);
+    }
+
+    private void loop() {
+        String cmd = null;
+        try {
+            cmd = loop_queue.take();
+            if (!NetStateUtil.isNetWorkAlive(mAppContext)) {
+                return;
+            }
+            if ("do".equals(cmd)) {
+                initConnection();
+            }
+            reconnectSN = null;
+        } catch (Exception e) {
+        } finally {
+            if (Define.KILL.equals(cmd)) {
+                logger.info("reconnect_thread_shutdown");
+            }
+        }
+    }
+
+    public void logout() {
+        new Thread() {
+            public void run() {
+                mHeartBeatManger.stopSchduleHeartBeat();
+                shutdown();
+                isLogOut = true;
+            }
+        }.start();
+    }
+
+    /**
+     * manager the heartbeat use AlarmManager to setRepeat sendHeat data
+     **/
+    class HeatBeatManager {
+        private HeartBeatReciver mHeartBeatReciver;
+        private PendingIntent mPendingIntent;
+
+        @SuppressLint("NewApi")
+        public void schduleNextHeartbeat() {
+            if (isLogOut)
+                return;
+            try {
+                AlarmManager mAlarmManager = (AlarmManager) mAppContext
+                        .getSystemService(Context.ALARM_SERVICE);
+                if (mHeartBeatReciver == null) {
+                    mHeartBeatReciver = new HeartBeatReciver();
+                    mAppContext.registerReceiver(mHeartBeatReciver, new IntentFilter(
+                            "com.emsg.client"));
+                }
+                if (mPendingIntent == null) {
+                    Intent mIntent = new Intent("com.emsg.client");
+                    mPendingIntent = PendingIntent.getBroadcast(mAppContext, 0, mIntent, 0);
+                }
+                long mCurrentTimeMin = System.currentTimeMillis();
+                mAlarmManager.setRepeating(AlarmManager.RTC_WAKEUP,
+                        mCurrentTimeMin, getHeartBeat(), mPendingIntent);
+            } catch (Exception e) {
+            }
+        }
+
+        public void stopSchduleHeartBeat() {
+            try {
+                AlarmManager mAlarmManager = (AlarmManager) mAppContext
+                        .getSystemService(Context.ALARM_SERVICE);
+                mAlarmManager.cancel(mPendingIntent);
+                mAppContext.unregisterReceiver(mHeartBeatReciver);
+                mHeartBeatReciver = null;
+            } catch (Exception e) {
+
+            }
+        }
+
+        public void sendHeartBeat() {
+            startBgService();
+            new Thread() {
+                public void run() {
+                    try {
+                        if (isAuth()) {
+                            heart_beat_ack.add("1");
+                            send(HEART_BEAT);
+                            logger.info("[" + heart_beat_ack.size()
+                                    + "]heartbeat ~~~ ");
+                        }
+                        if (isClose) {
+                            logger.info("[" + heart_beat_ack.size()
+                                    + "] is_closed ~~~ ");
+                            return;
+                        }
+                    } catch (Exception e) {
+                        shutdown();
+                        reconnection("heart_beat");
+                    }
+                }
+            }.start();
+        }
+    }
+
+    public class Receiver implements PacketListener<DefPayload> {
+
+        IProvider<DefPayload> provider = new DefProvider();
+
+        /**
+         * 语音视频拨号消息
+         */
+        @Override
+        public void mediaPacket(IPacket<DefPayload> arg0) {
+        }
+
+        @Override
+        public void processPacket(IPacket<DefPayload> packet) {
+            Intent intent = new Intent();
+            try {
+                int envolpeType = packet.getEnvelope().getType();
+                if (envolpeType==1) { //reciver data
+                    Message message = insertMessage(packet);
+                    intent.setAction(EmsgConstants.MSG_ACTION_RECDATA);
+                    Bundle bundle = new Bundle();
+                    bundle.putParcelable("message", message);
+                    intent.putExtras(bundle);
+                    mAppContext.sendBroadcast(intent); 
+                }else if(envolpeType==3){//target reciver data
+                    
+                }
+                
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        /**
+         * 将消息插入数据库
+         * 
+         * @param packet
+         * @throws Exception
+         */
+        private Message insertMessage(IPacket<DefPayload> packet) throws Exception {
+            String spacket = provider.encode(packet);
+            IEnvelope envelope = packet.getEnvelope();
+            Message message = new Message();
+            message.setMid(envelope.getId());
+            message.setJid_from(envelope.getFrom());
+            message.setJid_to(envelope.getTo());
+            message.setGid(envelope.getGid());
+            message.setType(envelope.getType());
+            message.setCt(System.currentTimeMillis());
+            String contentType = EmsgConstants.MSG_TYPE_FILETEXT;
+            if (packet.getPayload() != null) {
+                String mRecContentType = packet.getPayload().getAttrs().get("Content-type");
+                if (!TextUtils.isEmpty(mRecContentType))
+                    contentType = mRecContentType;
+                message.setContentType(contentType);
+                message.setContentLength(packet.getPayload().getAttrs().get("Content-length"));
+                message.setContent(packet.getPayload().getContent());
+            } else {
+                message.setContent(spacket);
+            }
+            return message;
+        }
+
+        @Override
+        public void sessionPacket(IPacket<DefPayload> packet) {
+            if (packet.getEnvelope().getType() == 0) { 
+                if(mAuthEmsgCallBack !=null){
+                    if ("ok".equals(packet.getEntity().getResult())) {
+                        mAuthEmsgCallBack.onSuccess("");
+                        mAuthEmsgCallBack  = null;
+                    } else {
+                        mAuthEmsgCallBack.onError(EmsgConstants.MSG_ERRORCODE_LOGIN,packet.getEntity().getReason());
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void offlinePacket(List<IPacket<DefPayload>> packets) {
+            try {
+                for (IPacket<DefPayload> packet : packets) {
+                    Message message = insertMessage(packet);
+                    Intent intent = new Intent();
+                    intent.setAction(EmsgConstants.MSG_ACTION_RECOFFLINEDATA);
+                    Bundle bundle = new Bundle();
+                    bundle.putParcelable("message", message);
+                    intent.putExtras(bundle);
+                    mAppContext.sendBroadcast(intent);
+                }
+            } catch (Exception e) {
+            }
+        }
+
+        @Override
+        public void pubsubPacket(Pubsub pubsub) {
+        }
+    }
+
+    /**
+     * the send data Method to send textMessage
+     **/
+    public void sendMessage(String msgToId, String content, EmsgCallBack mCallBack) {
+        if (msgToId == null || mCallBack == null) {
+            return;
+        }
+        if (!NetStateUtil.isNetWorkAlive(mAppContext)) {
+            mCallBack.onError(EmsgConstants.MSG_ERRORCODE_NET, "network error");
+            return;
+        }
+        IPacket<DefPayload> packet = new DefPacket(msgToId,
+                content, 1);
+        try {
+            packet.getEnvelope().setId(UUID.randomUUID().toString());
+            send(packet);
+            mCallBack.onSuccess(null);
+        } catch (InterruptedException e) {
+            mCallBack.onError(EmsgConstants.MSG_ERRORCODE_INTRRU, e.getMessage());
+        } catch (Exception e) {
+            mCallBack.onError(EmsgConstants.MSG_ERRORCODE_OTHER, e.getMessage());
+        }
+    }
+
+    public void sendImageMessage(Uri uri, final String messageTo,
+            final Map<String, String> mDataMap, final EmsgCallBack mCallBack) {
+
+        if (mCallBack == null) {
+            return;
+        }
+        if (!NetStateUtil.isNetWorkAlive(mAppContext)) {
+            mCallBack.onError(EmsgConstants.MSG_ERRORCODE_NET, "network error");
+            return;
+        }
+        UploadTask task = new UploadTask(mAppContext);
+        task.upload(uri, new UploadTaskCallback() {
+
+            @Override
+            public void onSuccess(String key) {
+                Map<String, String> mExtendMap = null;
+                if (mDataMap == null) {
+                    mExtendMap = new HashMap<String, String>();
+                } else {
+                    mExtendMap = mDataMap;
+                }
+                mExtendMap.put("Content-type", EmsgConstants.MSG_TYPE_FILEIMG);
+                String to = messageTo;
+                IPacket<DefPayload> packet = new DefPacket(to, key, 1, 1, mExtendMap);
+                try {
+                    send(packet);
+                    mCallBack.onSuccess(key);
+                } catch (InterruptedException e) {
+                    mCallBack.onError(EmsgConstants.MSG_ERRORCODE_INTRRU, e.getMessage());
+                } catch (Exception e) {
+                    mCallBack.onError(EmsgConstants.MSG_ERRORCODE_OTHER, e.getMessage());
+                }
+            }
+
+            @Override
+            public void onFailure() {
+                mCallBack.onError(103, "file upload error");
+            }
+        });
+
+    }
+
+    /**
+     * send File Message include image/audio or other
+     * 
+     * @param message for the file
+     * @param mDataMap expand map
+     * @param mCallBack for CallBack
+     */
+    public void sendAudioMessage(Uri uri, final int fileLength, final String messageTo,
+            final Map<String, String> mDataMap,
+            final EmsgCallBack mCallBack) {
+        if (mCallBack == null) {
+            return;
+        }
+        if (!NetStateUtil.isNetWorkAlive(mAppContext)) {
+            mCallBack.onError(EmsgConstants.MSG_ERRORCODE_NET, "network error");
+            return;
+        }
+        UploadTask task = new UploadTask(mAppContext);
+        task.upload(uri, new UploadTaskCallback() {
+
+            @Override
+            public void onSuccess(String key) {
+                Map<String, String> mExtendMap = null;
+                if (mDataMap == null) {
+                    mExtendMap = new HashMap<String, String>();
+                } else {
+                    mExtendMap = mDataMap;
+                }
+                mExtendMap.put("Content-type", EmsgConstants.MSG_TYPE_FILEAUDIO);
+                mExtendMap.put("Content-length", String.valueOf(fileLength));
+                String to = messageTo;
+                IPacket<DefPayload> packet = new DefPacket(to, key, 1, 1, mExtendMap);
+                try {
+                    send(packet);
+                    mCallBack.onSuccess(key);
+                } catch (InterruptedException e) {
+                    mCallBack.onError(EmsgConstants.MSG_ERRORCODE_INTRRU, e.getMessage());
+                } catch (Exception e) {
+                    mCallBack.onError(EmsgConstants.MSG_ERRORCODE_OTHER, e.getMessage());
+                }
+            }
+
+            @Override
+            public void onFailure() {
+                mCallBack.onError(EmsgConstants.MSG_ERRORCODE_INTRRU, "file upload error");
+            }
+        });
+    }
+}

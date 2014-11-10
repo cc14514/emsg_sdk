@@ -1,0 +1,5 @@
+int dimen activity_horizontal_margin 0x7f030000
+int drawable ic_launcher 0x7f020000
+int string action_settings 0x7f040002
+int string app_name 0x7f040000
+int string hello_world 0x7f040001
