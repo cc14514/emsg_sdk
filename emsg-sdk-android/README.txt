@@ -7,8 +7,11 @@ EMSG SDK android应用开发：
 3、将emsg_sdk.jar拷贝到libs目录
 
 EMSG SDK使用：
-### 在Application中初始化消息服务引擎
-<pre>
+
+
+
+在Application中初始化消息服务引擎
+
 /**
  * DemoApplication 名称可根据项目具体情况修改 ，但是不要忘记在AndroidManifest.xml 的<applicaion>
  * 节点下注册android:name=""
@@ -25,114 +28,122 @@ public class DemoApplication extends Application {
 
     public EmsgClient getEmsgClient() {
         return mEmsgClient;
-    }
+  }
 
-</pre>
 
-### 登录认证
 
-<pre>
-        //context：上下文对象
-        EmsgApplication mAppLication = (EmsgApplication) context.getApplication();
-        EmsgClient mEmsgClient = mAppLication.getEmsgClient();
-        String uid = "您的登陆账户";
-        String pwd = "登陆密码";
-        mEmsgClient.auth(uid, pwd, new EmsgCallBack() {
 
-            @Override
-            public void onSuccess(String resutMsg) {
-            }
 
-            @Override
-            public void onError(int errorCode, String mErrorMsg) {
-            }
-        });
+
+登录认证
+
+
+    //context：上下文对象
+    EmsgApplication mAppLication = (EmsgApplication) context.getApplication();
+    EmsgClient mEmsgClient = mAppLication.getEmsgClient();
+    String uid = "您的登陆账户";
+    String pwd = "登陆密码";
+    mEmsgClient.auth(uid, pwd, new EmsgCallBack() {
+
+        @Override
+        public void onSuccess(String resutMsg) {
+        }
+
+        @Override
+        public void onError(int errorCode, String mErrorMsg) {
+        }
+    });
 
     
-</pre>
 
 
-### 发送消息
-<pre>
-        获取emsg消息服务引擎对象方法如下：
-        context:为上下文对象,能够支持在任意组件中调用消息服务
-        EmsgApplication mAppLication = (EmsgApplication) context.getApplication();
-        EmsgClient mEmsgClient = mAppLication.getEmsgClient();
-</pre>
 
-### 发送文本消息
-<pre>
+发送消息：
 
-        String toAccount = "发送给对方的账户名";
-        String msgDital = "消息内容";
-        mAppLication.getEmsgClient().sendMessage(toAccount, msgDital,
-                new EmsgCallBack() {
 
-                    @Override
-                    public void onError(int errorCode, String mErrorMsg) {
-                    }
-                    @Override
-                    public void onSuccess(String resutMsg) {
-                    }
-                });
-</pre>
+    获取emsg消息服务引擎对象方法如下：
+    context:为上下文对象,能够支持在任意组件中调用消息服务
+    EmsgApplication mAppLication = (EmsgApplication) context.getApplication();
+    EmsgClient mEmsgClient = mAppLication.getEmsgClient();
 
-2,发送图片
-<pre>
+
+发送文本消息
+
+
+    String toAccount = "发送给对方的账户名";
+    String msgDital = "消息内容";
+    mAppLication.getEmsgClient().sendMessage(toAccount, msgDital,
+    new EmsgCallBack() {
+
+    @Override
+     public void onError(int errorCode, String mErrorMsg) {
+        }
+     @Override
+    public void onSuccess(String resutMsg) {
+    }
+    });
+
+
+发送图片
+
     String toAccount = "发送给对方的账户名";
     Uri uri; // 图片文件URI地址
     Map<String,String> mMap; //用于消息扩展
     mAppLication.getEmsgClient().sendImageMessage(uri, toAccount, mMap,
-                new EmsgCallBack() {
+            new EmsgCallBack() {
                     @Override
-                    public void onSuccess(String result) {
-                    }
+        public void onSuccess(String result) {
+                }
                     @Override
-                    public void onError(int errorCode, String mErrorMsg) {
+        public void onError(int errorCode, String mErrorMsg) {
+                }
+    });
+    
+    
+    
+发送语音消息
+ 
+
+    String toAccount = "发送给对方的账户名";
+    int mVoiceDuration = 3; // 语音文件时长 3s
+    Uri uri; // 语音文件URI地址
+    Map<String,String> mMap; //用于消息扩展
+    mAppLication.getEmsgClient().sendAudioMessage(uri, mVoiceDuration,
+        toAccount, mMap, new EmsgCallBack() {
+
+         @Override
+        public void onError(int errorCode, String mErrorMsg) {
+                }
+        @Override
+        public void onSuccess(String resutMsg) {
+            //resutMsg 为语音信息的地址
                     }
-                });
-</pre>
+    });
 
-### 发送语音消息
-<pre>
-        String toAccount = "发送给对方的账户名";
-        int mVoiceDuration = 3; // 语音文件时长 3s
-        Uri uri; // 语音文件URI地址
-        Map<String,String> mMap; //用于消息扩展
-        mAppLication.getEmsgClient().sendAudioMessage(uri, mVoiceDuration,
-                toAccount, mMap, new EmsgCallBack() {
 
-                    @Override
-                    public void onError(int errorCode, String mErrorMsg) {
-                    }
-                    @Override
-                    public void onSuccess(String resutMsg) {
-                        //resutMsg 为语音信息的地址
-                    }
-                });
-</pre>
-### 接收消息
-<pre>
-        IntentFilter mIntentFiter = new IntentFilter();
-        //注册即时消息接收广播
-        mIntentFiter.addAction(EmsgConstants.MSG_ACTION_RECDATA);
-        //接收离线消息广播
-        mIntentFiter.addAction(EmsgConstants.MSG_ACTION_RECOFFLINEDATA);
-        //接收消息服务开启广播即session连接成功
-        mIntentFiter.addAction(EmsgConstants.MSG_ACTION_SESSONOPENED);
-        //对应的上下文对象
-        context.registerReceiver(new BroadcastReceiver() {
 
-            @Override
-            public void onReceive(Context mContext, Intent mIntent) {
-                Message message = (Message) mIntent.getParcelableExtra("message");
-                //根据接收到具体消息类型执行相关处理
-            }
+接收消息
 
-        }, mIntentFiter);
-</pre>
-### Message 的具体结构
-<pre>
+    IntentFilter mIntentFiter = new IntentFilter();
+    //注册即时消息接收广播
+    mIntentFiter.addAction(EmsgConstants.MSG_ACTION_RECDATA);
+    //接收离线消息广播
+    mIntentFiter.addAction(EmsgConstants.MSG_ACTION_RECOFFLINEDATA);
+    //接收消息服务开启广播即session连接成功
+    mIntentFiter.addAction(EmsgConstants.MSG_ACTION_SESSONOPENED);
+    //对应的上下文对象
+    context.registerReceiver(new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context mContext, Intent mIntent) {
+            Message message = (Message) mIntent.getParcelableExtra("message");
+            //根据接收到具体消息类型执行相关处理
+        }
+    }, mIntentFiter);
+
+
+ Message 的具体结构
+
 
    见接收消息部分Message是在接收到消息广播后通过(Message) mIntent.getParcelableExtra("message");
    Message中被序列化的参数如下(即可以在接收到的Message对象中获取如下属性)：
@@ -143,10 +154,10 @@ public class DemoApplication extends Application {
    String contentType; 消息类型 分为"text","image","audio"
    String contentLength ;语音时长
    String content;      文本消息的具体内容,图片及语音的地址
-</pre>
 
-### 下载图片
-<pre>
+
+下载图片
+
 
     使用DownloadTask.download方法
     /**
@@ -171,22 +182,20 @@ public class DemoApplication extends Application {
             // 下载失败
         }
     });
-</pre>
 
-### 下载语音
-<pre>
+
+下载语音
 同下载图片
-</pre>
 
 
-### 关闭emsg消息服务引擎
-<pre>
+
+关闭emsg消息服务引擎
      注意：若退出应用时不接受消息则需要关闭消息服务否则程序会仍然在后台运行
      mAppLication.getEmsgClient().close();
-</pre>
 
 
-### 配置文件相关
+
+配置文件相关
 
     权限需求：
 
