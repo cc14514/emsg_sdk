@@ -118,6 +118,7 @@ public class ChatMsgViewAdapter extends BaseAdapter {
                     .mkdirs();
             viewHolder.tvText.setText("");
             viewHolder.tvText.setVisibility(View.VISIBLE);
+            viewHolder.tvImage.setVisibility(View.GONE);
             viewHolder.tvText.setCompoundDrawablesWithIntrinsicBounds(0, 0,
                     R.drawable.chatto_voice_playing, 0);
             viewHolder.tvTime.setText(entity.getTime());
