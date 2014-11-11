@@ -36,6 +36,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.emsg.sdk.EmsgCallBack;
+import com.emsg.sdk.EmsgCallBack.TypeError;
+import com.emsg.sdk.EmsgClient.MsgTargetType;
 import com.emsg.sdk.EmsgClient;
 import com.emsg.sdk.EmsgConstants;
 import com.emsg.sdk.beans.Message;
@@ -229,28 +231,16 @@ public class MainActivity extends Activity implements OnClickListener {
                         mEmsgClient.auth(account, "123123", new EmsgCallBack() {
 
                             @Override
-                            public void onSuccess(String resutMsg) {
-                                runOnUiThread(new Runnable() {
-
-                                    @Override
-                                    public void run() {
-                                        Toast.makeText(MainActivity.this, "登录成功，开始聊天吧.",
-                                                Toast.LENGTH_SHORT).show();
-                                        mTvTitle.setText(mEmsgClient.getJid());
-                                    }
-                                });
+                            public void onSuccess() {
+                                Toast.makeText(MainActivity.this, "登录成功，开始聊天吧.",
+                                        Toast.LENGTH_SHORT).show();
+                                mTvTitle.setText(mEmsgClient.getJid());
                             }
 
                             @Override
-                            public void onError(int errorCode, String mErrorMsg) {
-                                runOnUiThread(new Runnable() {
-
-                                    @Override
-                                    public void run() {
-                                        Toast.makeText(MainActivity.this, "登录失败",
-                                                Toast.LENGTH_SHORT).show();
-                                    }
-                                });
+                            public void onError(TypeError mTypeError) {
+                                Toast.makeText(MainActivity.this, "登录失败",
+                                        Toast.LENGTH_SHORT).show();
                             }
                         });
                     }
@@ -322,18 +312,19 @@ public class MainActivity extends Activity implements OnClickListener {
 
                     @Override
                     public void run() {
-                        mEmsgClient.sendMessage(msgTo, contString, new EmsgCallBack() {
+                        mEmsgClient.sendMessage(msgTo, contString, MsgTargetType.SINGLECHAT,
+                                new EmsgCallBack() {
 
-                            @Override
-                            public void onSuccess(String resutMsg) {
+                                    @Override
+                                    public void onSuccess() {
 
-                            }
+                                    }
 
-                            @Override
-                            public void onError(int errorCode, String mErrorMsg) {
+                                    @Override
+                                    public void onError(TypeError mTypeError) {
 
-                            }
-                        });
+                                    }
+                                });
                     }
                 });
             } catch (Exception ex) {
@@ -594,15 +585,16 @@ public class MainActivity extends Activity implements OnClickListener {
             public void run() {
 
                 mEmsgClient.sendAudioMessage(Uri.fromFile(file), length, mEmsgTo, null,
+                        MsgTargetType.SINGLECHAT,
                         new EmsgCallBack() {
 
                             @Override
-                            public void onSuccess(String resutMsg) {
+                            public void onSuccess() {
 
                             }
 
                             @Override
-                            public void onError(int errorCode, String mErrorMsg) {
+                            public void onError(TypeError mTypeError) {
                             }
                         });
             }
@@ -622,18 +614,19 @@ public class MainActivity extends Activity implements OnClickListener {
 
             @Override
             public void run() {
-                mEmsgClient.sendImageMessage(imageUri, mEmsgTo, null, new EmsgCallBack() {
+                mEmsgClient.sendImageMessage(imageUri, mEmsgTo, null, MsgTargetType.SINGLECHAT,
+                        new EmsgCallBack() {
 
-                    @Override
-                    public void onSuccess(String resutMsg) {
+                            @Override
+                            public void onSuccess() {
 
-                    }
+                            }
 
-                    @Override
-                    public void onError(int errorCode, String mErrorMsg) {
+                            @Override
+                            public void onError(TypeError mTypeError) {
 
-                    }
-                });
+                            }
+                        });
             }
         });
 
@@ -648,13 +641,17 @@ public class MainActivity extends Activity implements OnClickListener {
         mListView.setSelection(mListView.getCount() - 1);
 
     }
+
     public String getRealPathFromURI(Uri contentUri) {
         String res = null;
-        String[] proj = { MediaStore.Images.Media.DATA };
+        String[] proj = {
+                MediaStore.Images.Media.DATA
+        };
         Cursor cursor = getContentResolver().query(contentUri, proj, null, null, null);
-        if(cursor.moveToFirst()){;
-           int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-           res = cursor.getString(column_index);
+        if (cursor.moveToFirst()) {
+            ;
+            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+            res = cursor.getString(column_index);
         }
         cursor.close();
         return res;
