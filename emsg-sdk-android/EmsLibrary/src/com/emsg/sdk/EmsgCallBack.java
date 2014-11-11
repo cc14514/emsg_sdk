@@ -1,10 +1,13 @@
 package com.emsg.sdk;
 
-public interface  EmsgCallBack {
+public abstract class  EmsgCallBack {
     
-    public abstract void onSuccess(String resutMsg);
+    public abstract void onSuccess();
 
-    public abstract void onError(int errorCode, String mErrorMsg);
-
-
+    public abstract void onError(TypeError mErrorType);
+    
+    public enum TypeError{
+        TIMEOUT,NETERROR,SOCKETERROR,AUTHERROR,FILEUPLOADERROR
+    }
+    public long mCallBackTime;
 }

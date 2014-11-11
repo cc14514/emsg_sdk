@@ -3,8 +3,6 @@ package com.emsg.sdk;
 
 import android.annotation.SuppressLint;
 
-
-
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -15,10 +13,12 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.text.TextUtils;
 
+import com.emsg.sdk.EmsgCallBack.TypeError;
 import com.emsg.sdk.beans.DefPacket;
 import com.emsg.sdk.beans.DefPayload;
 import com.emsg.sdk.beans.DefProvider;
@@ -60,7 +60,7 @@ public class EmsgClient implements Define {
     private String pwd = null;
     private String appKey = null;
     private String heart = null;
-    private int heartBeat = 5000;
+    private int heartBeat = 50 * 1000;
 
     private Socket socket = null;
 
@@ -85,6 +85,10 @@ public class EmsgClient implements Define {
     private String mAppKey = null;
     public boolean isLogOut = false;
 
+    private EmsgCallbackHolder mCallBackHolder;
+
+    private Handler mMainHandler;
+
     public static EmsgClient getInstance() {
         if (mEmsgClient == null) {
             mEmsgClient = new EmsgClient();
@@ -95,6 +99,8 @@ public class EmsgClient implements Define {
     public void init(Context mAppContext) {
         this.mAppContext = mAppContext;
         startBgService();
+        mMainHandler = new Handler();
+        mCallBackHolder = new EmsgCallbackHolder(mAppContext, mMainHandler);
     }
 
     private void startBgService() {
@@ -133,20 +139,22 @@ public class EmsgClient implements Define {
         this.listener = new Receiver();
         // this.listener = (PacketListener<T>) new Receiver();
     }
+
     EmsgCallBack mAuthEmsgCallBack;
-    public void auth(String jid, String pwd,EmsgCallBack mEmsgCallBack) {
+
+    public void auth(String jid, String pwd, EmsgCallBack mEmsgCallBack) {
         if (jid != null && pwd != null) {
-            this.jid =jid;
+            this.jid = jid;
             this.pwd = pwd;
         }
-        if(mEmsgCallBack!=null){
+        if (mEmsgCallBack != null) {
             this.mAuthEmsgCallBack = mEmsgCallBack;
         }
         try {
             initConnection();
         } catch (Exception e) {
-            if(mEmsgCallBack!=null){
-                mEmsgCallBack.onError(EmsgConstants.MSG_ERRORCODE_LOGIN, e.getMessage());
+            if (mEmsgCallBack != null) {
+                mEmsgCallBack.onError(TypeError.SOCKETERROR);
             }
         }
     }
@@ -324,10 +332,15 @@ public class EmsgClient implements Define {
         }
     }
 
-    private void send(IPacket<DefPayload> packet) throws InterruptedException {
+    private void send(IPacket<DefPayload> packet, EmsgCallBack mEmsgCallBack)
+            throws InterruptedException {
         if (packet.getEnvelope().getFrom() == null) {
             packet.getEnvelope().setFrom(this.jid);
         }
+        String id = UUID.randomUUID().toString();
+        packet.getEnvelope().setId(id);
+        mEmsgCallBack.mCallBackTime = System.currentTimeMillis();
+        mCallBackHolder.addtoCollections(id, mEmsgCallBack);
         String encode_message = getProvider().encode(packet);
         packetWriter.write(encode_message);
     }
@@ -337,7 +350,7 @@ public class EmsgClient implements Define {
     }
 
     public void shutdown() {
-        // releasePowerManager();
+        mHeartBeatManger.stopSchduleHeartBeat();
         try {
             isClose = true;
             auth = false;
@@ -354,7 +367,8 @@ public class EmsgClient implements Define {
                 socket.close();
             }
             logger.info("shutdown...");
-        } catch (IOException e1) {
+            releasePowerManager();
+        } catch (Exception e1) {
             e1.printStackTrace();
         }
     }
@@ -399,7 +413,8 @@ public class EmsgClient implements Define {
         Intent mIntent = new Intent(mAppContext, EmsgService.class);
         mAppContext.startService(mIntent);
     }
-    void stopEmsService(){
+
+    void stopEmsService() {
         this.isClose = true;
         Intent mIntent = new Intent(mAppContext, EmsgService.class);
         mAppContext.stopService(mIntent);
@@ -427,7 +442,6 @@ public class EmsgClient implements Define {
     public void logout() {
         new Thread() {
             public void run() {
-                mHeartBeatManger.stopSchduleHeartBeat();
                 shutdown();
                 isLogOut = true;
             }
@@ -472,7 +486,6 @@ public class EmsgClient implements Define {
                 mAppContext.unregisterReceiver(mHeartBeatReciver);
                 mHeartBeatReciver = null;
             } catch (Exception e) {
-
             }
         }
 
@@ -484,12 +497,9 @@ public class EmsgClient implements Define {
                         if (isAuth()) {
                             heart_beat_ack.add("1");
                             send(HEART_BEAT);
-                            logger.info("[" + heart_beat_ack.size()
-                                    + "]heartbeat ~~~ ");
+                            mCallBackHolder.checkOutTime();
                         }
                         if (isClose) {
-                            logger.info("[" + heart_beat_ack.size()
-                                    + "] is_closed ~~~ ");
                             return;
                         }
                     } catch (Exception e) {
@@ -499,6 +509,30 @@ public class EmsgClient implements Define {
                 }
             }.start();
         }
+    }
+
+    private void runCallBackError(final EmsgCallBack mEmsgCallBack, final TypeError message) {
+        if (mEmsgCallBack == null)
+            return;
+        mMainHandler.post(new Runnable() {
+
+            @Override
+            public void run() {
+                mEmsgCallBack.onError(message);
+            }
+        });
+    }
+
+    private void runCallBackSuccess(final EmsgCallBack mEmsgCallBack) {
+        if (mEmsgCallBack == null)
+            return;
+        mMainHandler.post(new Runnable() {
+
+            @Override
+            public void run() {
+                mEmsgCallBack.onSuccess();
+            }
+        });
     }
 
     public class Receiver implements PacketListener<DefPayload> {
@@ -516,18 +550,22 @@ public class EmsgClient implements Define {
         public void processPacket(IPacket<DefPayload> packet) {
             Intent intent = new Intent();
             try {
-                int envolpeType = packet.getEnvelope().getType();
-                if (envolpeType==1) { //reciver data
+                IEnvelope mEnveloper = packet.getEnvelope();
+                int envolpeType = mEnveloper.getType();
+                if (envolpeType == 1) { // reciver data
                     Message message = insertMessage(packet);
                     intent.setAction(EmsgConstants.MSG_ACTION_RECDATA);
                     Bundle bundle = new Bundle();
                     bundle.putParcelable("message", message);
                     intent.putExtras(bundle);
-                    mAppContext.sendBroadcast(intent); 
-                }else if(envolpeType==3){//target reciver data
-                    
+                    mAppContext.sendBroadcast(intent);
+                } else if (envolpeType == 3) {// target reciver data
+                    if (mEnveloper.getFrom().equals("server_ack")) {
+                        String id = mEnveloper.getId();
+                        runCallBackSuccess(mCallBackHolder.onCallBackAction(id));
+                    }
                 }
-                
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -565,13 +603,13 @@ public class EmsgClient implements Define {
 
         @Override
         public void sessionPacket(IPacket<DefPayload> packet) {
-            if (packet.getEnvelope().getType() == 0) { 
-                if(mAuthEmsgCallBack !=null){
+            if (packet.getEnvelope().getType() == 0) {
+                if (mAuthEmsgCallBack != null) {
                     if ("ok".equals(packet.getEntity().getResult())) {
-                        mAuthEmsgCallBack.onSuccess("");
-                        mAuthEmsgCallBack  = null;
+                        runCallBackSuccess(mAuthEmsgCallBack);
+                        mAuthEmsgCallBack = null;
                     } else {
-                        mAuthEmsgCallBack.onError(EmsgConstants.MSG_ERRORCODE_LOGIN,packet.getEntity().getReason());
+                        runCallBackError(mAuthEmsgCallBack, TypeError.AUTHERROR);
                     }
                 }
             }
@@ -601,35 +639,34 @@ public class EmsgClient implements Define {
     /**
      * the send data Method to send textMessage
      **/
-    public void sendMessage(String msgToId, String content, EmsgCallBack mCallBack) {
+    public void sendMessage(String msgToId, String content, MsgTargetType mTargetType,
+            EmsgCallBack mCallBack) {
         if (msgToId == null || mCallBack == null) {
             return;
         }
         if (!NetStateUtil.isNetWorkAlive(mAppContext)) {
-            mCallBack.onError(EmsgConstants.MSG_ERRORCODE_NET, "network error");
+            runCallBackError(mCallBack, TypeError.NETERROR);
             return;
         }
+        int type = (mTargetType == MsgTargetType.SINGLECHAT ? 1 : 2);
         IPacket<DefPayload> packet = new DefPacket(msgToId,
-                content, 1);
+                content, type);
         try {
-            packet.getEnvelope().setId(UUID.randomUUID().toString());
-            send(packet);
-            mCallBack.onSuccess(null);
-        } catch (InterruptedException e) {
-            mCallBack.onError(EmsgConstants.MSG_ERRORCODE_INTRRU, e.getMessage());
+            send(packet, mCallBack);
         } catch (Exception e) {
-            mCallBack.onError(EmsgConstants.MSG_ERRORCODE_OTHER, e.getMessage());
+            runCallBackError(mCallBack, TypeError.SOCKETERROR);
         }
     }
 
     public void sendImageMessage(Uri uri, final String messageTo,
-            final Map<String, String> mDataMap, final EmsgCallBack mCallBack) {
+            final Map<String, String> mDataMap, final MsgTargetType mTargetType,
+            final EmsgCallBack mCallBack) {
 
         if (mCallBack == null) {
             return;
         }
         if (!NetStateUtil.isNetWorkAlive(mAppContext)) {
-            mCallBack.onError(EmsgConstants.MSG_ERRORCODE_NET, "network error");
+            runCallBackError(mCallBack, TypeError.NETERROR);
             return;
         }
         UploadTask task = new UploadTask(mAppContext);
@@ -645,20 +682,18 @@ public class EmsgClient implements Define {
                 }
                 mExtendMap.put("Content-type", EmsgConstants.MSG_TYPE_FILEIMG);
                 String to = messageTo;
-                IPacket<DefPayload> packet = new DefPacket(to, key, 1, 1, mExtendMap);
+                int type = (mTargetType == MsgTargetType.SINGLECHAT ? 1 : 2);
+                IPacket<DefPayload> packet = new DefPacket(to, key, type, 1, mExtendMap);
                 try {
-                    send(packet);
-                    mCallBack.onSuccess(key);
-                } catch (InterruptedException e) {
-                    mCallBack.onError(EmsgConstants.MSG_ERRORCODE_INTRRU, e.getMessage());
+                    send(packet, mCallBack);
                 } catch (Exception e) {
-                    mCallBack.onError(EmsgConstants.MSG_ERRORCODE_OTHER, e.getMessage());
+                    runCallBackError(mCallBack, TypeError.NETERROR);
                 }
             }
 
             @Override
             public void onFailure() {
-                mCallBack.onError(103, "file upload error");
+                runCallBackError(mCallBack, TypeError.FILEUPLOADERROR);
             }
         });
 
@@ -672,13 +707,13 @@ public class EmsgClient implements Define {
      * @param mCallBack for CallBack
      */
     public void sendAudioMessage(Uri uri, final int fileLength, final String messageTo,
-            final Map<String, String> mDataMap,
+            final Map<String, String> mDataMap, final MsgTargetType mTargetType,
             final EmsgCallBack mCallBack) {
         if (mCallBack == null) {
             return;
         }
         if (!NetStateUtil.isNetWorkAlive(mAppContext)) {
-            mCallBack.onError(EmsgConstants.MSG_ERRORCODE_NET, "network error");
+            runCallBackError(mCallBack, TypeError.NETERROR);
             return;
         }
         UploadTask task = new UploadTask(mAppContext);
@@ -695,21 +730,24 @@ public class EmsgClient implements Define {
                 mExtendMap.put("Content-type", EmsgConstants.MSG_TYPE_FILEAUDIO);
                 mExtendMap.put("Content-length", String.valueOf(fileLength));
                 String to = messageTo;
-                IPacket<DefPayload> packet = new DefPacket(to, key, 1, 1, mExtendMap);
+                int type = (mTargetType == MsgTargetType.SINGLECHAT ? 1 : 2);
+                IPacket<DefPayload> packet = new DefPacket(to, key, type, 1, mExtendMap);
                 try {
-                    send(packet);
-                    mCallBack.onSuccess(key);
-                } catch (InterruptedException e) {
-                    mCallBack.onError(EmsgConstants.MSG_ERRORCODE_INTRRU, e.getMessage());
+                    send(packet, mCallBack);
                 } catch (Exception e) {
-                    mCallBack.onError(EmsgConstants.MSG_ERRORCODE_OTHER, e.getMessage());
+                    runCallBackError(mCallBack, TypeError.SOCKETERROR);
                 }
             }
 
             @Override
             public void onFailure() {
-                mCallBack.onError(EmsgConstants.MSG_ERRORCODE_INTRRU, "file upload error");
+                runCallBackError(mCallBack, TypeError.FILEUPLOADERROR);
             }
         });
     }
+
+    public enum MsgTargetType {
+        SINGLECHAT, GROUPCHAT
+    }
+
 }
