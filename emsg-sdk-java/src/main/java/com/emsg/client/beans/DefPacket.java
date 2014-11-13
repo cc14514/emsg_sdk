@@ -43,7 +43,11 @@ public class DefPacket implements IPacket<DefPayload>{
 		IEnvelope envelope = new Envelope();
 		envelope.setId(UUID.randomUUID().toString());
 		envelope.setAck(ack);
-		envelope.setTo(to);
+		if(Define.MSG_TYPE_GROUP_CHAT==type){
+			envelope.setGid(to);
+		}else{
+			envelope.setTo(to);
+		}
 		envelope.setType(type);
 		
 		DefPayload payload = new DefPayload();
