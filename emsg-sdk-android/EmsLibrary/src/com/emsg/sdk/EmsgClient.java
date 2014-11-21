@@ -27,8 +27,10 @@ import com.emsg.sdk.beans.IPacket;
 import com.emsg.sdk.beans.IProvider;
 import com.emsg.sdk.beans.Message;
 import com.emsg.sdk.beans.Pubsub;
-import com.emsg.sdk.client.android.asynctask.UploadTask;
-import com.emsg.sdk.client.android.asynctask.UploadTask.UploadTaskCallback;
+import com.emsg.sdk.client.android.asynctask.AbsFileServerTarget;
+import com.emsg.sdk.client.android.asynctask.IUpLoadTask;
+import com.emsg.sdk.client.android.asynctask.TaskCallBack;
+import com.emsg.sdk.client.android.asynctask.qiniu.QiNiuFileServerTarget;
 import com.emsg.sdk.util.NetStateUtil;
 import com.google.gson.JsonObject;
 
@@ -53,7 +55,7 @@ public class EmsgClient implements Define {
 
     static MyLogger logger = new MyLogger(EmsgClient.class);
 
-    private String emsg_host = "182.254.210.135";
+    private String emsg_host = "192.168.2.11";
     private int emsg_port = 4222;
 
     private String jid = null;
@@ -89,6 +91,8 @@ public class EmsgClient implements Define {
 
     private Handler mMainHandler;
 
+    private AbsFileServerTarget mFileServerTarget;
+
     public static EmsgClient getInstance() {
         if (mEmsgClient == null) {
             mEmsgClient = new EmsgClient();
@@ -101,6 +105,7 @@ public class EmsgClient implements Define {
         startBgService();
         mMainHandler = new Handler();
         mCallBackHolder = new EmsgCallbackHolder(mAppContext, mMainHandler);
+        mFileServerTarget = new QiNiuFileServerTarget(mAppContext);
     }
 
     private void startBgService() {
@@ -229,7 +234,7 @@ public class EmsgClient implements Define {
             IOException {
         reader = socket.getInputStream();
         writer = socket.getOutputStream();
-        // TODO if first new reader
+
         packetReader = new PacketReader<DefPayload>(this);
         packetWriter = new PacketWriter();
         heart_beat_ack = new ArrayBlockingQueue<String>(2, true);
@@ -535,6 +540,9 @@ public class EmsgClient implements Define {
         });
     }
 
+    /**
+     * the Reciver to reciver the data from emsg-server
+     */
     public class Receiver implements PacketListener<DefPayload> {
 
         IProvider<DefPayload> provider = new DefProvider();
@@ -658,6 +666,13 @@ public class EmsgClient implements Define {
         }
     }
 
+    /**
+     * send Image File by inside sdk
+     * 
+     * @param message for the file (such as the url of the file in fileServer)
+     * @param mDataMap expand map
+     * @param mCallBack for CallBack
+     */
     public void sendImageMessage(Uri uri, final String messageTo,
             final Map<String, String> mDataMap, final MsgTargetType mTargetType,
             final EmsgCallBack mCallBack) {
@@ -669,26 +684,12 @@ public class EmsgClient implements Define {
             runCallBackError(mCallBack, TypeError.NETERROR);
             return;
         }
-        UploadTask task = new UploadTask(mAppContext);
-        task.upload(uri, new UploadTaskCallback() {
+        IUpLoadTask task = mFileServerTarget.getUpLoadTask();
+        task.upload(uri, new TaskCallBack() {
 
             @Override
-            public void onSuccess(String key) {
-                Map<String, String> mExtendMap = null;
-                if (mDataMap == null) {
-                    mExtendMap = new HashMap<String, String>();
-                } else {
-                    mExtendMap = mDataMap;
-                }
-                mExtendMap.put("Content-type", EmsgConstants.MSG_TYPE_FILEIMG);
-                String to = messageTo;
-                int type = (mTargetType == MsgTargetType.SINGLECHAT ? 1 : 2);
-                IPacket<DefPayload> packet = new DefPacket(to, key, type, 1, mExtendMap);
-                try {
-                    send(packet, mCallBack);
-                } catch (Exception e) {
-                    runCallBackError(mCallBack, TypeError.NETERROR);
-                }
+            public void onSuccess(String message) {
+                sendImageTextMessage(mDataMap, messageTo, mTargetType, mCallBack, message);
             }
 
             @Override
@@ -696,13 +697,12 @@ public class EmsgClient implements Define {
                 runCallBackError(mCallBack, TypeError.FILEUPLOADERROR);
             }
         });
-
     }
 
     /**
-     * send File Message include image/audio or other
+     * send audioFile by our inside sdk and callBack result
      * 
-     * @param message for the file
+     * @param message for the file (such as the url of the file in fileServer)
      * @param mDataMap expand map
      * @param mCallBack for CallBack
      */
@@ -716,27 +716,13 @@ public class EmsgClient implements Define {
             runCallBackError(mCallBack, TypeError.NETERROR);
             return;
         }
-        UploadTask task = new UploadTask(mAppContext);
-        task.upload(uri, new UploadTaskCallback() {
+        IUpLoadTask task = mFileServerTarget.getUpLoadTask();
+        task.upload(uri, new TaskCallBack() {
 
             @Override
-            public void onSuccess(String key) {
-                Map<String, String> mExtendMap = null;
-                if (mDataMap == null) {
-                    mExtendMap = new HashMap<String, String>();
-                } else {
-                    mExtendMap = mDataMap;
-                }
-                mExtendMap.put("Content-type", EmsgConstants.MSG_TYPE_FILEAUDIO);
-                mExtendMap.put("Content-length", String.valueOf(fileLength));
-                String to = messageTo;
-                int type = (mTargetType == MsgTargetType.SINGLECHAT ? 1 : 2);
-                IPacket<DefPayload> packet = new DefPacket(to, key, type, 1, mExtendMap);
-                try {
-                    send(packet, mCallBack);
-                } catch (Exception e) {
-                    runCallBackError(mCallBack, TypeError.SOCKETERROR);
-                }
+            public void onSuccess(String message) {
+                sendAudioTextMessage(mDataMap, fileLength, messageTo, mTargetType, mCallBack,
+                        message);
             }
 
             @Override
@@ -744,6 +730,52 @@ public class EmsgClient implements Define {
                 runCallBackError(mCallBack, TypeError.FILEUPLOADERROR);
             }
         });
+    }
+
+    /**
+     * for send the message of the file to emsg server
+     **/
+    public void sendAudioTextMessage(Map<String, String> mDataMap, int fileLength, String msgTo,
+            MsgTargetType mTargetType, EmsgCallBack mCallBack, String content) {
+        Map<String, String> mExtendMap = null;
+        if (mDataMap == null) {
+            mExtendMap = new HashMap<String, String>();
+        } else {
+            mExtendMap = mDataMap;
+        }
+        mExtendMap.put("Content-type", EmsgConstants.MSG_TYPE_FILEAUDIO);
+        mExtendMap.put("Content-length", String.valueOf(fileLength));
+        String to = msgTo;
+        int type = (mTargetType == MsgTargetType.SINGLECHAT ? 1 : 2);
+        IPacket<DefPayload> packet = new DefPacket(to, content, type, 1, mExtendMap);
+        try {
+            send(packet, mCallBack);
+        } catch (Exception e) {
+            runCallBackError(mCallBack, TypeError.SOCKETERROR);
+        }
+    }
+
+    /**
+     * for send the message of the file to emsg server
+     **/
+    public void sendImageTextMessage(Map<String, String> mDataMap, String msgTo,
+            MsgTargetType mTargetType, EmsgCallBack mCallBack, String content) {
+
+        Map<String, String> mExtendMap = null;
+        if (mDataMap == null) {
+            mExtendMap = new HashMap<String, String>();
+        } else {
+            mExtendMap = mDataMap;
+        }
+        mExtendMap.put("Content-type", EmsgConstants.MSG_TYPE_FILEIMG);
+        String to = msgTo;
+        int type = (mTargetType == MsgTargetType.SINGLECHAT ? 1 : 2);
+        IPacket<DefPayload> packet = new DefPacket(to, content, type, 1, mExtendMap);
+        try {
+            send(packet, mCallBack);
+        } catch (Exception e) {
+            runCallBackError(mCallBack, TypeError.NETERROR);
+        }
     }
 
     public enum MsgTargetType {

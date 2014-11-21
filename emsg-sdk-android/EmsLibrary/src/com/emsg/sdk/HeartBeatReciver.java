@@ -6,7 +6,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
-//not use anymore
 public class HeartBeatReciver extends BroadcastReceiver {
 
     @Override

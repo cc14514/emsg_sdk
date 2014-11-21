@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 
+
 public class ThumbExtractor {
 	/**
 	 * Creates a centered bitmap of the desired size. Recycles the input.

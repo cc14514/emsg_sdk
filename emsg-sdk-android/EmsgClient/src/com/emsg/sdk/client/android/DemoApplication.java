@@ -2,6 +2,7 @@
 package com.emsg.sdk.client.android;
 
 import android.app.Application;
+
 import android.util.Log;
 
 import com.emsg.sdk.EmsgClient;
