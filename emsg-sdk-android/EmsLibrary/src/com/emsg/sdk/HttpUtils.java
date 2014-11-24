@@ -47,11 +47,7 @@ public class HttpUtils {
 			osw.close();
 		} catch (Exception e) {
 			e.printStackTrace();
-		} finally {
-			if (con != null) {
-				con.disconnect();
-			}
-		}
+		} 
 		// 读取返回内容
 		StringBuffer buffer = new StringBuffer();
 		try {
@@ -64,6 +60,10 @@ public class HttpUtils {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+		}finally {
+			if (con != null) {
+				con.disconnect();
+			}
 		}
 
 		return buffer.toString();

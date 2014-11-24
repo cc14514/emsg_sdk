@@ -55,7 +55,7 @@ public class EmsgClient implements Define {
 
     static MyLogger logger = new MyLogger(EmsgClient.class);
 
-    private String emsg_host = "192.168.2.11";
+    private String emsg_host = "182.254.210.135";
     private int emsg_port = 4222;
 
     private String jid = null;

@@ -45,7 +45,7 @@ import java.util.UUID;
 	 * @param callback
 	 */
 	public void upload(File file, final TaskCallBack callback) {
-		String uptoken = TokenGenerator.uploadToken("emsg");
+		String uptoken = TokenGenerator.getAccesskey(context, "emsg");
 		key = UUID.randomUUID().toString() + "_" + file.getName(); // 自动生成key
 		PutExtra extra = new PutExtra();
 		extra.params = new HashMap<String, String>();

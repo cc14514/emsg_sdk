@@ -10,6 +10,8 @@ public abstract class AbsFileServerTarget {
 
     public AbsFileServerTarget(Context mContext) {
         this.mContext = mContext;
+        setDownLoadTask();
+        setUpLoadTask();
     }
 
     public abstract void setDownLoadTask();
