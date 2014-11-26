@@ -1,0 +1,17 @@
+db_files
+bin
+gen
+*.keystore
+out
+.idea
+*.iml
+ant.properties
+build.xml
+local.properties
+proguard-project.txt
+project.properties
+.classpath
+.project
+.settings
+proguard
+huaqin89_we_jb2/configs/EMMC_partition_size.mk

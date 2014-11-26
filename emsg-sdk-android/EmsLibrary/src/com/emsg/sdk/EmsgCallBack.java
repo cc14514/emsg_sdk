@@ -7,7 +7,7 @@ public abstract class  EmsgCallBack {
     public abstract void onError(TypeError mErrorType);
     
     public enum TypeError{
-        TIMEOUT,NETERROR,SOCKETERROR,AUTHERROR,FILEUPLOADERROR
+        TIMEOUT,NETERROR,SOCKETERROR,AUTHERROR,FILEUPLOADERROR,SESSIONCLOSED
     }
     public long mCallBackTime;
 }

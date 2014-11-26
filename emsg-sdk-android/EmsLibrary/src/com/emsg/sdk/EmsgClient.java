@@ -39,6 +39,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -48,6 +49,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class EmsgClient implements Define {
 
@@ -55,7 +57,7 @@ public class EmsgClient implements Define {
 
     static MyLogger logger = new MyLogger(EmsgClient.class);
 
-    private String emsg_host = "182.254.210.135";
+    private String emsg_host = "192.168.2.122";
     private int emsg_port = 4222;
 
     private String jid = null;
@@ -63,6 +65,7 @@ public class EmsgClient implements Define {
     private String appKey = null;
     private String heart = null;
     private int heartBeat = 50 * 1000;
+    private int socketTimeOut = 10 * 1000;
 
     private Socket socket = null;
 
@@ -85,7 +88,7 @@ public class EmsgClient implements Define {
 
     private HeatBeatManager mHeartBeatManger;
     private String mAppKey = null;
-    public boolean isLogOut = false;
+    public AtomicBoolean isLogOut = new AtomicBoolean(false);
 
     private EmsgCallbackHolder mCallBackHolder;
 
@@ -119,7 +122,7 @@ public class EmsgClient implements Define {
     private void holdPowerManager() {
         PowerManager mPowerManager = (PowerManager) mAppContext
                 .getSystemService(Context.POWER_SERVICE);
-        WakeLock wakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "DPA");
+        WakeLock wakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "EMSG");
         if (!wakeLock.isHeld())
             wakeLock.acquire();
     }
@@ -130,6 +133,7 @@ public class EmsgClient implements Define {
             wakeLock.release();
             wakeLock = null;
         }
+
     }
 
     public HeatBeatManager getHeartBeatManager() {
@@ -157,6 +161,10 @@ public class EmsgClient implements Define {
         }
         try {
             initConnection();
+        } catch (SocketTimeoutException e) {
+            if (mEmsgCallBack != null) {
+                mEmsgCallBack.onError(TypeError.TIMEOUT);
+            }
         } catch (Exception e) {
             if (mEmsgCallBack != null) {
                 mEmsgCallBack.onError(TypeError.SOCKETERROR);
@@ -181,9 +189,10 @@ public class EmsgClient implements Define {
         holdPowerManager();
         logger.debug(this.emsg_host + " ; " + this.emsg_port);
         this.socket = new Socket(this.emsg_host, this.emsg_port);
+        this.socket.setSoTimeout(socketTimeOut);
         reconnectSN = null;
         isClose = false;
-        isLogOut = false;
+        isLogOut.set(false);
         initReaderAndWriter();
         openSession();
         mHeartBeatManger.schduleNextHeartbeat();
@@ -272,18 +281,23 @@ public class EmsgClient implements Define {
                                     part);
                             for (int i = 0; i < packetList.size(); i++) {
                                 String packet = packetList.get(i);
-                                System.out.println("--> packet = " + packet);
                                 // dispach heart beat and message
                                 if (HEART_BEAT.equals(packet)) {
                                     // 心跳单独处理
                                     heart_beat_ack.poll();
                                 } else if (SERVER_KILL.equals(packet)) {
-                                    logger.debug("server_kill=" + packet);
-                                    close();
+                                    shutdown();
+                                    isLogOut.set(true);
+                                    runOnMainThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            mEmsClosedCallBack.onAnotherClientLogin();
+                                        }
+                                    });
+
                                 } else {
                                     packetReader.recv(packet);
                                 }
-                                // 将新的片段赋给中间变�?
                                 part.clear();
                             }
                             if (new_part != null && new_part.size() > 0) {
@@ -296,9 +310,9 @@ public class EmsgClient implements Define {
                                 "emsg_retome_socket_closed__reader="
                                         + new String(buff));
                     } catch (Exception e) {
-                        e.printStackTrace();
                         shutdown();
-                        reconnection("listenerRead");
+                        if (!isLogOut.get())
+                            reconnection("listenerRead");
                     }
                 }
             };
@@ -339,6 +353,10 @@ public class EmsgClient implements Define {
 
     private void send(IPacket<DefPayload> packet, EmsgCallBack mEmsgCallBack)
             throws InterruptedException {
+        if (isClose && mEmsgCallBack != null) {
+            mEmsgCallBack.onError(TypeError.SESSIONCLOSED);
+            return;
+        }
         if (packet.getEnvelope().getFrom() == null) {
             packet.getEnvelope().setFrom(this.jid);
         }
@@ -420,7 +438,6 @@ public class EmsgClient implements Define {
     }
 
     void stopEmsService() {
-        this.isClose = true;
         Intent mIntent = new Intent(mAppContext, EmsgService.class);
         mAppContext.stopService(mIntent);
     }
@@ -448,7 +465,7 @@ public class EmsgClient implements Define {
         new Thread() {
             public void run() {
                 shutdown();
-                isLogOut = true;
+                isLogOut.set(true);
             }
         }.start();
     }
@@ -462,7 +479,7 @@ public class EmsgClient implements Define {
 
         @SuppressLint("NewApi")
         public void schduleNextHeartbeat() {
-            if (isLogOut)
+            if (isLogOut.get())
                 return;
             try {
                 AlarmManager mAlarmManager = (AlarmManager) mAppContext
@@ -516,6 +533,11 @@ public class EmsgClient implements Define {
         }
     }
 
+    private void runOnMainThread(Runnable mRunable) {
+        if (mRunable != null)
+            mMainHandler.post(mRunable);
+    }
+
     private void runCallBackError(final EmsgCallBack mEmsgCallBack, final TypeError message) {
         if (mEmsgCallBack == null)
             return;
@@ -560,14 +582,16 @@ public class EmsgClient implements Define {
             try {
                 IEnvelope mEnveloper = packet.getEnvelope();
                 int envolpeType = mEnveloper.getType();
-                if (envolpeType == 1) { // reciver data
+                if (envolpeType == IEnvelope.TYPE_CHAT_REC) { // reciver data
                     Message message = insertMessage(packet);
                     intent.setAction(EmsgConstants.MSG_ACTION_RECDATA);
                     Bundle bundle = new Bundle();
                     bundle.putParcelable("message", message);
                     intent.putExtras(bundle);
                     mAppContext.sendBroadcast(intent);
-                } else if (envolpeType == 3) {// target reciver data
+                } else if (envolpeType == IEnvelope.TYPE_MESSAGE_SERVER) {// target
+                                                                          // reciver
+                                                                          // data
                     if (mEnveloper.getFrom().equals("server_ack")) {
                         String id = mEnveloper.getId();
                         runCallBackSuccess(mCallBackHolder.onCallBackAction(id));
@@ -774,12 +798,29 @@ public class EmsgClient implements Define {
         try {
             send(packet, mCallBack);
         } catch (Exception e) {
-            runCallBackError(mCallBack, TypeError.NETERROR);
+            runCallBackError(mCallBack, TypeError.SOCKETERROR);
         }
     }
 
     public enum MsgTargetType {
         SINGLECHAT, GROUPCHAT
+    }
+
+    EmsClosedCallBack mEmsClosedCallBack;
+
+    public void setEmsClosedCallBack(EmsClosedCallBack mEmsClosedCallback) {
+        this.mEmsClosedCallBack = mEmsClosedCallback;
+    }
+
+    public void notifySocketClocked() {
+        if (mEmsClosedCallBack != null) {
+            // mEmsClosedCallBack.onEmsgClientClosed();
+        }
+    }
+
+    public interface EmsClosedCallBack {
+        public void onAnotherClientLogin();
+        // public void onEmsgClientClosed();
     }
 
 }

@@ -36,5 +36,8 @@ public interface IEnvelope {
 	
 	@Override
 	public String toString();
+	public static final int TYPE_CHAT_REC = 1;
+	public static final int TYPE_SOCKET_KILL = 0;
+	public static final int TYPE_MESSAGE_SERVER = 3;
 	
 }

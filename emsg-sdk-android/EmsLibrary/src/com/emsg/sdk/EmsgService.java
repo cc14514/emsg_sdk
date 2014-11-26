@@ -28,14 +28,14 @@ public class EmsgService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (EmsgClient.getInstance().isLogOut)
+        if (EmsgClient.getInstance().isLogOut.get())
             return START_NOT_STICKY;
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
-        if (EmsgClient.getInstance().isLogOut) {
+        if (EmsgClient.getInstance().isLogOut.get()) {
             return;
         } else {
             EmsgClient.getInstance().startEmsService();

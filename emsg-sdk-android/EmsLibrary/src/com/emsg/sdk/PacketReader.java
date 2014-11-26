@@ -85,6 +85,7 @@ public class PacketReader<T> implements Define{
 								//媒体类型消息，包括语音和视频的拨号调度响应与事件
 								client.listener.mediaPacket(p);
 							}if(MSG_TYPE_OPEN_SESSION==type){
+							    
 								//打开session的包中包含了离线消息，在 delay 字段中，将其分析出来并拆分到两个回调方法�?
 								List<IPacket<DefPayload>> packets = null;
 								if(p.getDelay()!=null){

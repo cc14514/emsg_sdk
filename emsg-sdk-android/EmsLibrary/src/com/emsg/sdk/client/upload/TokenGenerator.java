@@ -71,6 +71,7 @@ public class TokenGenerator {
 		mHashMap.put("body", upLoadJson);
 		String getDataFromHttpPost = HttpUtils.http(EmsgConstants.server_host
 				+ "/uptoken/", mHashMap);
+		if(getDataFromHttpPost ==null) return null;
 		JsonObject mJson = JsonUtil.parse(getDataFromHttpPost);
 
 		if (JsonUtil.getAsBoolean(mJson, "success")) {

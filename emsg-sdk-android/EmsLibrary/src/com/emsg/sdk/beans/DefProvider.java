@@ -30,7 +30,6 @@ public class DefProvider implements IProvider<DefPayload> {
 	public String encode(IPacket<DefPayload> packet) {
 		return gson.toJson(packet);
 	}
-
 	@Override
 	public IPacket<DefPayload> decode(String packet) {
 		JsonParser parser = new JsonParser();

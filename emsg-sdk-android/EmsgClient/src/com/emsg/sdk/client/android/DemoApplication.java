@@ -4,8 +4,10 @@ package com.emsg.sdk.client.android;
 import android.app.Application;
 
 import android.util.Log;
+import android.widget.Toast;
 
 import com.emsg.sdk.EmsgClient;
+import com.emsg.sdk.EmsgClient.EmsClosedCallBack;
 
 public class DemoApplication extends Application {
     private static final String TAG = Application.class.getSimpleName();
@@ -21,6 +23,13 @@ public class DemoApplication extends Application {
         super.onCreate();
         mEmsgClient = EmsgClient.getInstance();
         mEmsgClient.init(this);
+        mEmsgClient.setEmsClosedCallBack(new EmsClosedCallBack() {
+            @Override
+            public void onAnotherClientLogin() {
+                Toast.makeText(DemoApplication.this, "已掉线请重新登录", Toast.LENGTH_SHORT).show();
+                //需要三方重新登录
+            }
+        });
     }
 
     @Override
