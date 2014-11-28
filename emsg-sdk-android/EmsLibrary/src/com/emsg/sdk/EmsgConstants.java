@@ -38,7 +38,6 @@ public class EmsgConstants {
     public static String to_account = "cai@test.com/123";
     public static String to_password = "123123";
 
-    public static String server_host = "http://192.168.2.12/";
     public static int server_port = 4222;
 
     public static final String MSG_ACTION_RECDATA = "action.emsg.reciverdata";

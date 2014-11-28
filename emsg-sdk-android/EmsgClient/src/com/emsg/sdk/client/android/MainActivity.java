@@ -2,6 +2,7 @@
 package com.emsg.sdk.client.android;
 
 import android.app.Activity;
+
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
@@ -36,14 +37,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.emsg.sdk.EmsgCallBack;
-import com.emsg.sdk.EmsgCallBack.TypeError;
-import com.emsg.sdk.EmsgClient.MsgTargetType;
 import com.emsg.sdk.EmsgClient;
+import com.emsg.sdk.EmsgClient.MsgTargetType;
 import com.emsg.sdk.EmsgConstants;
-import com.emsg.sdk.beans.Message;
+import com.emsg.sdk.beans.EmsMessage;
 
 import java.io.File;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -534,12 +533,12 @@ public class MainActivity extends Activity implements OnClickListener {
 
             @Override
             public void onReceive(Context mContext, Intent mIntent) {
-                Message message = (Message) mIntent.getParcelableExtra("message");
+                EmsMessage message = (EmsMessage) mIntent.getParcelableExtra("message");
                 if (message == null)
                     return;
                 entity = new ChatMsgEntity();
                 entity.setDate(getDate());
-                entity.setName(message.getJid_from());
+                entity.setName(message.getmAccFrom());
                 entity.setMsgType(true);
                 String type = message.getContentType();
                 if (type != null) {
@@ -668,7 +667,7 @@ public class MainActivity extends Activity implements OnClickListener {
     @Override
     public void onDestroy() {
         try {
-            mEmsgClient.close();
+            mEmsgClient.closeClient();
         } catch (Exception e) {
         }
         super.onDestroy();

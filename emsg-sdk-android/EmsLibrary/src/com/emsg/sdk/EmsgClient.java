@@ -25,7 +25,7 @@ import com.emsg.sdk.beans.DefProvider;
 import com.emsg.sdk.beans.IEnvelope;
 import com.emsg.sdk.beans.IPacket;
 import com.emsg.sdk.beans.IProvider;
-import com.emsg.sdk.beans.Message;
+import com.emsg.sdk.beans.EmsMessage;
 import com.emsg.sdk.beans.Pubsub;
 import com.emsg.sdk.client.android.asynctask.AbsFileServerTarget;
 import com.emsg.sdk.client.android.asynctask.IUpLoadTask;
@@ -57,9 +57,6 @@ public class EmsgClient implements Define {
 
     static MyLogger logger = new MyLogger(EmsgClient.class);
 
-    private String emsg_host = "192.168.2.122";
-    private int emsg_port = 4222;
-
     private String jid = null;
     private String pwd = null;
     private String appKey = null;
@@ -78,8 +75,8 @@ public class EmsgClient implements Define {
     protected PacketListener<DefPayload> listener = null;
     private IProvider<DefPayload> provider = null;
 
-    private boolean auth = false;
-    private boolean isClose = true;
+    private boolean auth = false; // 用于返回当前认证状态
+    private boolean isClose = true; // 用于返回当前连接状态
     private String reconnectSN = null;
 
     private volatile Context mAppContext;
@@ -88,17 +85,20 @@ public class EmsgClient implements Define {
 
     private HeatBeatManager mHeartBeatManger;
     private String mAppKey = null;
-    public AtomicBoolean isLogOut = new AtomicBoolean(false);
+    public AtomicBoolean isLogOut = new AtomicBoolean(true);// 用于主动发起的断线 不需要重练
 
     private EmsgCallbackHolder mCallBackHolder;
 
     private Handler mMainHandler;
 
     private AbsFileServerTarget mFileServerTarget;
+    private final static Object mObject = new Object();
 
     public static EmsgClient getInstance() {
-        if (mEmsgClient == null) {
-            mEmsgClient = new EmsgClient();
+        synchronized (mObject) {
+            if (mEmsgClient == null) {
+                mEmsgClient = new EmsgClient();
+            }
         }
         return mEmsgClient;
     }
@@ -146,12 +146,15 @@ public class EmsgClient implements Define {
         mEmsgClient = this;
         setProvider(new DefProvider());
         this.listener = new Receiver();
-        // this.listener = (PacketListener<T>) new Receiver();
     }
 
     EmsgCallBack mAuthEmsgCallBack;
 
-    public void auth(String jid, String pwd, EmsgCallBack mEmsgCallBack) {
+    public synchronized void auth(String jid, String pwd, EmsgCallBack mEmsgCallBack) {
+        if (isAuth()){
+            if(mEmsgCallBack!=null) mEmsgCallBack.onSuccess();
+            return;
+        }
         if (jid != null && pwd != null) {
             this.jid = jid;
             this.pwd = pwd;
@@ -187,8 +190,7 @@ public class EmsgClient implements Define {
     private void initConnection() throws UnknownHostException, IOException,
             InterruptedException {
         holdPowerManager();
-        logger.debug(this.emsg_host + " ; " + this.emsg_port);
-        this.socket = new Socket(this.emsg_host, this.emsg_port);
+        this.socket = new Socket(EMSG_HOST, EMSG_PORT);
         this.socket.setSoTimeout(socketTimeOut);
         reconnectSN = null;
         isClose = false;
@@ -214,7 +216,7 @@ public class EmsgClient implements Define {
         packetWriter.write(open_session_packet);
     }
 
-    public void close() {
+    public void closeClient() {
         releasePowerManager();
         loop_queue.add(KILL);
         shutdown();
@@ -251,7 +253,7 @@ public class EmsgClient implements Define {
         new IOListener(heart);
     }
 
-    public boolean isAuth() {
+    public synchronized boolean isAuth() {
         return auth;
     }
 
@@ -291,7 +293,7 @@ public class EmsgClient implements Define {
                                     runOnMainThread(new Runnable() {
                                         @Override
                                         public void run() {
-                                            mEmsClosedCallBack.onAnotherClientLogin();
+                                            mEmsStateCallBack.onAnotherClientLogin();
                                         }
                                     });
 
@@ -392,7 +394,6 @@ public class EmsgClient implements Define {
             logger.info("shutdown...");
             releasePowerManager();
         } catch (Exception e1) {
-            e1.printStackTrace();
         }
     }
 
@@ -428,7 +429,7 @@ public class EmsgClient implements Define {
         return isClose;
     }
 
-    public void setAuth(boolean auth) {
+    public synchronized void setAuth(boolean auth) {
         this.auth = auth;
     }
 
@@ -459,15 +460,6 @@ public class EmsgClient implements Define {
                 logger.info("reconnect_thread_shutdown");
             }
         }
-    }
-
-    public void logout() {
-        new Thread() {
-            public void run() {
-                shutdown();
-                isLogOut.set(true);
-            }
-        }.start();
     }
 
     /**
@@ -583,7 +575,7 @@ public class EmsgClient implements Define {
                 IEnvelope mEnveloper = packet.getEnvelope();
                 int envolpeType = mEnveloper.getType();
                 if (envolpeType == IEnvelope.TYPE_CHAT_REC) { // reciver data
-                    Message message = insertMessage(packet);
+                    EmsMessage message = insertMessage(packet);
                     intent.setAction(EmsgConstants.MSG_ACTION_RECDATA);
                     Bundle bundle = new Bundle();
                     bundle.putParcelable("message", message);
@@ -609,13 +601,13 @@ public class EmsgClient implements Define {
          * @param packet
          * @throws Exception
          */
-        private Message insertMessage(IPacket<DefPayload> packet) throws Exception {
+        private EmsMessage insertMessage(IPacket<DefPayload> packet) throws Exception {
             String spacket = provider.encode(packet);
             IEnvelope envelope = packet.getEnvelope();
-            Message message = new Message();
+            EmsMessage message = new EmsMessage();
             message.setMid(envelope.getId());
-            message.setJid_from(envelope.getFrom());
-            message.setJid_to(envelope.getTo());
+            message.setmAccFrom(envelope.getFrom());
+            message.setmAccTo(envelope.getTo());
             message.setGid(envelope.getGid());
             message.setType(envelope.getType());
             message.setCt(System.currentTimeMillis());
@@ -626,7 +618,15 @@ public class EmsgClient implements Define {
                     contentType = mRecContentType;
                 message.setContentType(contentType);
                 message.setContentLength(packet.getPayload().getAttrs().get("Content-length"));
-                message.setContent(packet.getPayload().getContent());
+                String content = packet.getPayload().getContent();
+                if (contentType.equals(EmsgConstants.MSG_TYPE_FILEIMG)) {
+                    message.setContent(mFileServerTarget.getImageUrlPath(content));
+                } else if(contentType.equals(EmsgConstants.MSG_TYPE_FILEAUDIO)){
+                    message.setContent(mFileServerTarget.getAudioUrlPath(content));
+                }else{
+                    message.setContent(content);
+                }
+
             } else {
                 message.setContent(spacket);
             }
@@ -636,13 +636,15 @@ public class EmsgClient implements Define {
         @Override
         public void sessionPacket(IPacket<DefPayload> packet) {
             if (packet.getEnvelope().getType() == 0) {
-                if (mAuthEmsgCallBack != null) {
-                    if ("ok".equals(packet.getEntity().getResult())) {
+
+                if ("ok".equals(packet.getEntity().getResult())) {
+                    if (mAuthEmsgCallBack != null) {
                         runCallBackSuccess(mAuthEmsgCallBack);
                         mAuthEmsgCallBack = null;
-                    } else {
+                    } 
+                } else {
+                    if (mAuthEmsgCallBack != null)
                         runCallBackError(mAuthEmsgCallBack, TypeError.AUTHERROR);
-                    }
                 }
             }
         }
@@ -651,7 +653,7 @@ public class EmsgClient implements Define {
         public void offlinePacket(List<IPacket<DefPayload>> packets) {
             try {
                 for (IPacket<DefPayload> packet : packets) {
-                    Message message = insertMessage(packet);
+                    EmsMessage message = insertMessage(packet);
                     Intent intent = new Intent();
                     intent.setAction(EmsgConstants.MSG_ACTION_RECOFFLINEDATA);
                     Bundle bundle = new Bundle();
@@ -806,21 +808,16 @@ public class EmsgClient implements Define {
         SINGLECHAT, GROUPCHAT
     }
 
-    EmsClosedCallBack mEmsClosedCallBack;
+    EmsStateCallBack mEmsStateCallBack;
 
-    public void setEmsClosedCallBack(EmsClosedCallBack mEmsClosedCallback) {
-        this.mEmsClosedCallBack = mEmsClosedCallback;
+    public void setEmsStCallBack(EmsStateCallBack mEmsClosedCallback) {
+        this.mEmsStateCallBack = mEmsClosedCallback;
     }
 
-    public void notifySocketClocked() {
-        if (mEmsClosedCallBack != null) {
-            // mEmsClosedCallBack.onEmsgClientClosed();
-        }
-    }
-
-    public interface EmsClosedCallBack {
+    public interface EmsStateCallBack {
         public void onAnotherClientLogin();
-        // public void onEmsgClientClosed();
+
+     
     }
 
 }

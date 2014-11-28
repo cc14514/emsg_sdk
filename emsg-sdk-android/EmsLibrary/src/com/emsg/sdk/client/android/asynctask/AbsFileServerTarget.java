@@ -17,7 +17,10 @@ public abstract class AbsFileServerTarget {
     public abstract void setDownLoadTask();
 
     public abstract void setUpLoadTask();
+    
+    public abstract String getImageUrlPath(String content);
 
+    public abstract String getAudioUrlPath(String content);
     public IDownLoadTask getDownLoadTask() {
         return mDownLoadTask;
     };

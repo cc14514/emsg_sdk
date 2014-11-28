@@ -6,6 +6,9 @@ public abstract class  EmsgCallBack {
 
     public abstract void onError(TypeError mErrorType);
     
+    public void onProgress(int current ,int max){
+        
+    }
     public enum TypeError{
         TIMEOUT,NETERROR,SOCKETERROR,AUTHERROR,FILEUPLOADERROR,SESSIONCLOSED
     }

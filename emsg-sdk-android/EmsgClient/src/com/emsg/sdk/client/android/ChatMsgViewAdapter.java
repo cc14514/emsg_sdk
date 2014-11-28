@@ -246,8 +246,7 @@ public class ChatMsgViewAdapter extends BaseAdapter {
         @Override
         protected Boolean doInBackground(String... params) {
             try {
-                String url = "http://emsg.qiniudn.com/";
-                url += params[1] + "?" + params[2];
+                String url = params[1];
 
                 DefaultHttpClient client = new DefaultHttpClient();
                 HttpGet get = new HttpGet(url);
@@ -290,8 +289,7 @@ public class ChatMsgViewAdapter extends BaseAdapter {
         @Override
         protected Boolean doInBackground(String... params) {
             try {
-                String url = "http://emsg.qiniudn.com/";
-                url += params[0];
+                String url = params[0];
 
                 DefaultHttpClient client = new DefaultHttpClient();
                 HttpGet get = new HttpGet(url);

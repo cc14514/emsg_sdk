@@ -10,6 +10,7 @@ import android.content.Context;
 import android.text.TextUtils;
 import android.util.Base64;
 
+import com.emsg.sdk.Define;
 import com.emsg.sdk.EmsgConstants;
 import com.emsg.sdk.HttpUtils;
 import com.emsg.sdk.util.JsonUtil;
@@ -56,7 +57,10 @@ public class TokenGenerator {
 		finalAccessKey = PreferencesUtils.getString(context, "acckey");
 		long effectTime = PreferencesUtils.getLong(context, "efftime");
 		if (TextUtils.isEmpty(finalAccessKey) || isTimeOverEffectTime(effectTime)) {
-			finalAccessKey = getAccessKeyFromPost(context, appkey);
+		    try{
+		        finalAccessKey = getAccessKeyFromPost(context, appkey);
+		    }catch(Exception e){
+		    }
 		}
 		return finalAccessKey;
 	}
@@ -69,11 +73,10 @@ public class TokenGenerator {
 		String upLoadJson = getJsonData(appkey);
 		Map<String, String> mHashMap = new HashMap<String, String>();
 		mHashMap.put("body", upLoadJson);
-		String getDataFromHttpPost = HttpUtils.http(EmsgConstants.server_host
-				+ "/uptoken/", mHashMap);
+		String getDataFromHttpPost = HttpUtils.http(Define.TOKEN_HOST
+				, mHashMap);
 		if(getDataFromHttpPost ==null) return null;
 		JsonObject mJson = JsonUtil.parse(getDataFromHttpPost);
-
 		if (JsonUtil.getAsBoolean(mJson, "success")) {
 			String accessKey = JsonUtil.getAsString(mJson, "entity");
 			if (!TextUtils.isEmpty(accessKey)) {

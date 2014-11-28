@@ -44,5 +44,8 @@ public interface Define {
 	public static final int ACK_ENABLE = 1;
 	
 	public static final String VSN = "0.0.1";
-	
+	public static  String EMSG_HOST = "192.168.2.230";
+	public static int EMSG_PORT = 4222;
+	public static String TOKEN_HOST = "http://192.168.2.230/uptoken/";
+
 }

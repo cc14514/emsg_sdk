@@ -28,14 +28,14 @@ public class EmsgService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (EmsgClient.getInstance().isLogOut.get())
+        if (isEmsgLoginOut())
             return START_NOT_STICKY;
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
-        if (EmsgClient.getInstance().isLogOut.get()) {
+        if (isEmsgLoginOut()) {
             return;
         } else {
             EmsgClient.getInstance().startEmsService();
@@ -43,6 +43,9 @@ public class EmsgService extends Service {
         unRegisterNetworkReceiver();
     }
 
+    private boolean isEmsgLoginOut(){
+        return EmsgClient.getInstance().isLogOut.get();
+    }
     EmsgNetWorkBrodCastReciver mBrodCastReciver;
 
     private void registerNetworkReceiver() {
@@ -67,13 +70,18 @@ public class EmsgService extends Service {
 
             if (NetStateUtil.isNetWorkAlive(mContext)) {
                 try {
-                    EmsgClient.getInstance().auth(null, null,null);
+                    if(!isEmsgLoginOut()){
+                        new Thread(){
+                            public void run(){
+                                EmsgClient.getInstance().auth(null, null,null);
+                            }
+                        }.start();
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
-
     }
 
 }
